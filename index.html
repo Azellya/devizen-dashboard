@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Devizen — Pilotage commercial & conformité</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --paper:#F4F0E7; --paper-2:#EFE9DC;
+    --surface:#FFFFFF; --surface-2:#FBF9F4;
+    --ink:#171B22; --ink-soft:#5C6470; --ink-faint:#8A909B;
+    --line:#E4DDCD; --line-soft:#EDE7D9;
+    --primary:#0F5E58; --primary-soft:#3E8B83; --primary-tint:#E2EEEC;
+    --accent:#B5751B; --accent-tint:#F3E7CF;
+    --danger:#A93B2C; --danger-tint:#F3DCD6;
+    --positive:#2F7D5B; --positive-tint:#DCEDE2;
+    --info:#2E5C88; --info-tint:#DBE6F0;
+    --shadow:0 1px 2px rgba(23,27,34,.04), 0 8px 24px -12px rgba(23,27,34,.18);
+    --radius:14px;
+    --serif:'Fraunces',Georgia,serif;
+    --sans:'Hanken Grotesk',-apple-system,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--sans); background:var(--paper); color:var(--ink);
+    font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(rgba(23,27,34,.022) 1px, transparent 1px);
+    background-size:22px 22px;
+  }
+  .app{display:grid; grid-template-columns:232px 1fr; min-height:100vh}
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    position:sticky; top:0; height:100vh; background:var(--ink);
+    color:#D8DDE4; padding:22px 16px; display:flex; flex-direction:column; gap:4px;
+  }
+  .brand{display:flex; align-items:center; gap:10px; padding:4px 8px 22px; }
+  .brand .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--primary-soft),var(--primary));display:grid;place-items:center;font-family:var(--serif);font-weight:600;color:#fff;font-size:18px;flex:none}
+  .brand b{font-family:var(--serif); font-weight:600; font-size:20px; color:#fff; letter-spacing:.2px}
+  .brand small{display:block;color:#8C949F;font-size:10.5px;font-weight:500;letter-spacing:.5px;text-transform:uppercase}
+  .nav-label{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:#6E7681;padding:14px 10px 6px;font-weight:600}
+  .nav a{
+    display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:9px;
+    color:#C2C8D0;text-decoration:none;font-weight:500;font-size:13.5px;cursor:pointer;transition:.15s
+  }
+  .nav a .ic{width:18px;text-align:center;font-size:13px;color:#7E8691;flex:none}
+  .nav a:hover{background:#23272F;color:#fff}
+  .nav a.active{background:var(--primary);color:#fff}
+  .nav a.active .ic{color:#fff}
+  .nav a .badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;font-family:var(--mono)}
+  .side-foot{margin-top:auto;font-size:11px;color:#6E7681;padding:10px;border-top:1px solid #262B33;line-height:1.5}
+
+  /* ---------- Topbar / filters ---------- */
+  .main{min-width:0}
+  .topbar{
+    position:sticky;top:0;z-index:30;background:rgba(244,240,231,.86);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);padding:14px 30px;display:flex;align-items:center;gap:12px;flex-wrap:wrap
+  }
+  .topbar h1{font-family:var(--serif);font-size:21px;font-weight:600;margin-right:auto;letter-spacing:.2px}
+  .topbar h1 span{color:var(--ink-faint);font-size:12px;font-family:var(--sans);font-weight:500;display:block;letter-spacing:.3px}
+  .select, .seg, .toggle{font-family:var(--sans);font-size:12.5px}
+  .select{position:relative}
+  .select select{
+    appearance:none;background:var(--surface);border:1px solid var(--line);border-radius:9px;
+    padding:7px 30px 7px 12px;font-family:inherit;font-size:12.5px;color:var(--ink);cursor:pointer;font-weight:500
+  }
+  .select::after{content:"▾";position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--ink-faint);pointer-events:none;font-size:11px}
+  .seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .seg button{border:0;background:transparent;padding:7px 11px;font-family:inherit;font-size:12px;color:var(--ink-soft);cursor:pointer;font-weight:500;border-right:1px solid var(--line-soft)}
+  .seg button:last-child{border-right:0}
+  .seg button.on{background:var(--primary);color:#fff}
+  .toggle{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:6px 11px;cursor:pointer;color:var(--ink-soft);font-weight:500;user-select:none}
+  .toggle .sw{width:30px;height:17px;border-radius:20px;background:#D6CFBE;position:relative;transition:.2s;flex:none}
+  .toggle .sw::after{content:"";position:absolute;width:13px;height:13px;border-radius:50%;background:#fff;top:2px;left:2px;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+  .toggle.on .sw{background:var(--primary)}
+  .toggle.on .sw::after{left:15px}
+
+  /* ---------- Content ---------- */
+  .content{padding:26px 30px 60px}
+  section{scroll-margin-top:74px;margin-bottom:38px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+  .sec-head .num{font-family:var(--serif);font-size:13px;color:var(--primary);font-weight:600;background:var(--primary-tint);width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex:none}
+  .sec-head h2{font-family:var(--serif);font-size:20px;font-weight:600}
+  .sec-head p{color:var(--ink-soft);font-size:12.5px;margin-left:auto;max-width:46%;text-align:right}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .card .ch{padding:15px 18px 0;display:flex;align-items:center;justify-content:space-between}
+  .card .ch h3{font-size:13.5px;font-weight:600}
+  .card .ch .hint{font-size:11px;color:var(--ink-faint);font-weight:500}
+  .card .cb{padding:14px 18px 18px}
+  .grid{display:grid;gap:16px}
+
+  /* ---------- KPI cards ---------- */
+  .kpis{grid-template-columns:repeat(6,1fr)}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:15px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden;cursor:default}
+  .kpi .lab{font-size:11px;color:var(--ink-soft);font-weight:600;letter-spacing:.2px;display:flex;align-items:center;gap:6px}
+  .kpi .val{font-family:var(--mono);font-size:25px;font-weight:600;margin-top:7px;letter-spacing:-.5px;line-height:1}
+  .kpi .val small{font-size:14px;color:var(--ink-faint);font-weight:500}
+  .kpi .delta{font-size:11.5px;font-weight:600;margin-top:5px;display:inline-flex;align-items:center;gap:3px;font-family:var(--mono)}
+  .up{color:var(--positive)} .down{color:var(--danger)}
+  .kpi.alert{border-color:var(--danger);background:linear-gradient(180deg,var(--danger-tint),var(--surface) 60%)}
+  .kpi .spark{position:absolute;right:12px;bottom:10px;width:62px;height:26px;opacity:.85}
+  .kpi.tap{cursor:pointer;transition:.15s}
+  .kpi.tap:hover{transform:translateY(-2px);box-shadow:0 10px 28px -14px rgba(23,27,34,.4)}
+
+  /* ---------- bespoke charts ---------- */
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-soft);font-weight:500}
+  .legend i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:6px;vertical-align:-1px}
+  .funnel{display:flex;flex-direction:column;gap:7px}
+  .fstep{position:relative}
+  .fbar{height:42px;border-radius:8px;display:flex;align-items:center;padding:0 14px;color:#fff;font-weight:600;font-size:13px;transition:.2s}
+  .fstep .meta{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:12px;color:#fff;opacity:.92}
+  .fstep .drop{font-size:11px;color:var(--danger);font-weight:600;padding:2px 0 0 4px}
+
+  table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.tbl th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-faint);font-weight:600;padding:7px 8px;border-bottom:1px solid var(--line)}
+  table.tbl td{padding:8px;border-bottom:1px solid var(--line-soft)}
+  table.tbl tr:last-child td{border-bottom:0}
+  table.tbl .num{font-family:var(--mono);text-align:right}
+  .pill{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;font-family:var(--mono)}
+  .pill.r{background:var(--danger-tint);color:var(--danger)}
+  .pill.o{background:var(--accent-tint);color:var(--accent)}
+  .pill.g{background:var(--positive-tint);color:var(--positive)}
+
+  .heat{display:grid;grid-template-columns:96px repeat(12,1fr);gap:3px;font-size:10px}
+  .heat .hl{color:var(--ink-soft);font-weight:600;display:flex;align-items:center;font-size:11px}
+  .heat .hm{color:var(--ink-faint);text-align:center;font-weight:600;font-size:9.5px}
+  .heat .cell{aspect-ratio:1.6;border-radius:4px;display:grid;place-items:center;color:#fff;font-family:var(--mono);font-size:9.5px;font-weight:500;cursor:default}
+
+  .bullet{margin-bottom:13px}
+  .bullet .top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+  .bullet .top b{font-weight:600}
+  .bullet .top .v{font-family:var(--mono);color:var(--ink-soft)}
+  .btrack{position:relative;height:18px;border-radius:5px;background:linear-gradient(90deg,var(--danger-tint),var(--accent-tint),var(--positive-tint))}
+  .bfill{position:absolute;left:0;top:3px;height:12px;border-radius:4px;background:var(--ink)}
+  .btarget{position:absolute;top:-2px;height:22px;width:2.5px;background:var(--danger);border-radius:2px}
+
+  .waterfall{display:flex;align-items:flex-end;gap:10px;height:190px;padding-top:10px}
+  .wcol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative}
+  .wbar{width:100%;border-radius:6px 6px 0 0;position:relative}
+  .wlab{font-size:10.5px;color:var(--ink-soft);font-weight:600;margin-top:7px;text-align:center}
+  .wval{font-family:var(--mono);font-size:10.5px;position:absolute;top:-16px;left:50%;transform:translateX(-50%);white-space:nowrap;color:var(--ink)}
+
+  .hbars{display:flex;flex-direction:column;gap:9px}
+  .hbar{display:grid;grid-template-columns:130px 1fr 58px;align-items:center;gap:10px;font-size:12px}
+  .hbar .name{color:var(--ink);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hbar .track{height:18px;background:var(--paper-2);border-radius:5px;overflow:hidden}
+  .hbar .fill{height:100%;border-radius:5px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;color:#fff;font-size:10px;font-weight:600;font-family:var(--mono)}
+  .hbar .pct{font-family:var(--mono);text-align:right;color:var(--ink-soft);font-weight:500}
+
+  .gauge-wrap{display:flex;align-items:center;gap:20px}
+  .matrix{display:grid;grid-template-columns:auto repeat(4,1fr);gap:4px;font-size:11px}
+  .matrix .mh{font-weight:600;color:var(--ink-soft);text-align:center;font-size:10.5px;padding:4px}
+  .matrix .mr{font-weight:600;color:var(--ink-soft);display:flex;align-items:center;font-size:11px}
+  .matrix .mc{aspect-ratio:2.4;border-radius:5px;display:grid;place-items:center;font-family:var(--mono);font-weight:600;color:var(--ink)}
+
+  .note{font-size:11px;color:var(--ink-faint);background:var(--surface-2);border:1px dashed var(--line);border-radius:8px;padding:9px 12px;display:flex;gap:8px;align-items:center}
+  .note b{color:var(--accent)}
+
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(23,27,34,.42);backdrop-filter:blur(2px);display:none;place-items:center;z-index:80;padding:24px}
+  .overlay.show{display:grid}
+  .modal{background:var(--surface);border-radius:16px;max-width:680px;width:100%;max-height:84vh;overflow:auto;box-shadow:0 30px 80px -20px rgba(0,0,0,.5)}
+  .modal .mh{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface)}
+  .modal .mh h3{font-family:var(--serif);font-size:18px;font-weight:600}
+  .modal .mh button{border:0;background:var(--paper-2);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:16px;color:var(--ink-soft)}
+  .modal .mb{padding:18px 22px}
+
+  .collapsible .cb.hidden{display:none}
+  .chev{transition:.2s;color:var(--ink-faint)}
+  .chev.open{transform:rotate(180deg)}
+  .clickable{cursor:pointer}
+  .clickable:hover{outline:2px solid var(--primary-tint);outline-offset:2px;border-radius:6px}
+
+  @media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:860px){
+    .app{grid-template-columns:1fr}
+    .sidebar{position:fixed;left:-260px;z-index:90;transition:.25s;width:232px}
+    .sidebar.open{left:0}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .menu-btn{display:grid!important}
+    .sec-head p{display:none}
+  }
+  .menu-btn{display:none;border:1px solid var(--line);background:var(--surface);width:36px;height:36px;border-radius:9px;place-items:center;cursor:pointer;font-size:16px}
+  .fade{opacity:0;transform:translateY(8px);animation:fade .5s forwards}
+  @keyframes fade{to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="mark">D</div><div><b>Devizen</b><small>Cabinet Prisme · Groupe</small></div></div>
+    <div class="nav-label">Pilotage</div>
+    <div class="nav" id="nav">
+      <a data-t="synthese" class="active"><span class="ic">◧</span> Synthèse</a>
+      <a data-t="activite"><span class="ic">▥</span> Activité commerciale</a>
+      <a data-t="pipeline"><span class="ic">⧨</span> Pipeline & relances</a>
+      <a data-t="rentabilite"><span class="ic">◭</span> Rentabilité</a>
+      <a data-t="performance"><span class="ic">◎</span> Objectifs & équipe</a>
+    </div>
+    <div class="nav-label">Conformité</div>
+    <div class="nav">
+      <a data-t="lab"><span class="ic">⚖</span> Conformité LAB <span class="badge" id="labBadge">312</span></a>
+    </div>
+    <div class="nav-label">Données</div>
+    <div class="nav">
+      <a data-t="referentiel"><span class="ic">▦</span> Référentiel</a>
+    </div>
+    <div class="side-foot">Prototype — données fictives.<br>Refonte du tableau de bord, juin 2026.</div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <h1>Tableau de bord<span>Vue associé · mai 2023</span></h1>
+      <div class="select"><select><option>Tous les cabinets</option><option>Cabinet Alsace</option><option>Cabinet Paris</option><option>Cabinet Sud</option></select></div>
+      <div class="select"><select><option>Tous les sites</option><option>Strasbourg</option><option>Paris 9e</option><option>Nice</option></select></div>
+      <div class="select"><select><option>Tous collaborateurs</option><option>M. Lefèvre</option><option>T. Roche</option><option>S. Bauer</option></select></div>
+      <div class="seg" id="periodSeg">
+        <button data-p="1">Mois</button>
+        <button data-p="3" class="on">3 mois</button>
+        <button data-p="6">6 mois</button>
+        <button data-p="12">12 mois</button>
+      </div>
+      <div class="toggle on" id="cmpToggle"><div class="sw"></div> Comparer N‑1</div>
+      <div class="toggle" id="testToggle"><div class="sw"></div> Prospects test</div>
+    </div>
+
+    <div class="content" id="content">
+
+      <!-- ① SYNTHÈSE -->
+      <section id="synthese">
+        <div class="sec-head"><span class="num">1</span><h2>Synthèse</h2>
+          <p>L'état de santé en un coup d'œil — sans naviguer dans les onglets. Chiffres cliquables.</p></div>
+        <div class="grid kpis" id="kpiGrid"></div>
+      </section>
+
+      <!-- ② ACTIVITÉ -->
+      <section id="activite">
+        <div class="sec-head"><span class="num">2</span><h2>Activité commerciale</h2>
+          <p>Devis comparés à N‑1, saisonnalité par prestation et performance des canaux d'acquisition.</p></div>
+        <div class="grid" style="grid-template-columns:1.6fr 1fr">
+          <div class="card">
+            <div class="ch"><h3>Devis & montant HT signé · 2023 vs 2022</h3><span class="hint">barres = nb · ligne = € HT</span></div>
+            <div class="cb"><canvas id="devisChart" height="150"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="ch"><h3>Sources de prescription</h3><span class="hint">volume vs taux de transfo</span></div>
+            <div class="cb"><div class="hbars" id="sourcesBars"></div>
+              <div class="note" style="margin-top:12px">💡 <span>« Internet » apporte le volume mais <b>Banque & Partenaire</b> transforment 2× mieux.</span></div></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <div class="ch"><h3>Saisonnalité — devis signés par prestation & par mois</h3><span class="hint">pic clôtures avril–mai</span></div>
+          <div class="cb"><div class="heat" id="heat"></div></div>
+        </div>
+      </section>
+
+      <!-- ③ PIPELINE -->
+      <section id="pipeline">
+        <div class="sec-head"><span class="num">3</span><h2>Pipeline & relances</h2>
+          <p>Valeur pondérée du pipe, entonnoir de conversion et devis en attente à relancer.</p></div>
+        <div class="grid" style="grid-template-columns:1fr 1.3fr">
+          <div class="card">
+            <div class="ch"><h3>Entonnoir de conversion</h3><span class="hint">90 derniers jours</span></div>
+            <div class="cb"><div class="funnel" id="funnel"></div></div>
+          </div>
+          <div class="card">
+            <div class="ch"><h3>Devis en attente — à relancer</h3><span class="hint clickable" onclick="openDrill('aging')">voir tout ▸</span></div>
+            <div class="cb"><table class="tbl" id="agingTbl"></table></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ④ RENTABILITÉ -->
+      <section id="rentabilite">
+        <div class="sec-head"><span class="num">4</span><h2>Rentabilité</h2>
+          <p>Du CA signé à la marge réelle (coût = heures budgétées × TJM chargé). Le gros CA ≠ la grosse marge.</p></div>
+        <div class="grid" style="grid-template-columns:1fr 1fr">
+          <div class="card">
+            <div class="ch"><h3>Du CA signé à la marge brute · mai</h3><span class="hint">cascade</span></div>
+            <div class="cb"><div class="waterfall" id="waterfall"></div></div>
+          </div>
+          <div class="card">
+            <div class="ch"><h3>Marge brute par prestation</h3><span class="hint">% · trié</span></div>
+            <div class="cb"><div class="hbars" id="margeBars"></div>
+            <div class="note" style="margin-top:12px">⚠ <span>La <b>Paie</b> pèse 23% du volume mais sa marge (28%) est la plus faible — chronophage.</span></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⑤ PERFORMANCE -->
+      <section id="performance">
+        <div class="sec-head"><span class="num">5</span><h2>Objectifs & équipe</h2>
+          <p>Avancement vs objectif par collaborateur (bullet charts) et classement du trimestre.</p></div>
+        <div class="grid" style="grid-template-columns:1fr 1fr">
+          <div class="card">
+            <div class="ch"><h3>CA signé vs objectif mensuel</h3><span class="hint">trait rouge = objectif</span></div>
+            <div class="cb" id="bullets"></div>
+          </div>
+          <div class="card">
+            <div class="ch"><h3>Classement collaborateurs · T2</h3><span class="hint">CA signé · transfo</span></div>
+            <div class="cb"><table class="tbl" id="rankTbl"></table></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⑥ LAB -->
+      <section id="lab">
+        <div class="sec-head"><span class="num">6</span><h2>Conformité LAB</h2>
+          <p>Vigilance, alertes de délai réglementaire et scoring de risque par code APE.</p></div>
+        <div class="note" style="border-color:var(--danger);background:var(--danger-tint);color:var(--danger);margin-bottom:14px">
+          ⚠ <span><b>312 dossiers</b> dépassent le délai réglementaire de mise à jour LAB · <b>2 250</b> restent « à faire » (84%). <span class="clickable" style="text-decoration:underline" onclick="openDrill('lab')">Voir les dossiers prioritaires ▸</span></span>
+        </div>
+        <div class="grid" style="grid-template-columns:.8fr 1fr 1.1fr">
+          <div class="card">
+            <div class="ch"><h3>Niveau de vigilance</h3></div>
+            <div class="cb"><div class="gauge-wrap"><div id="gauge"></div>
+              <div style="font-size:12px;line-height:2"><div><span class="pill o">Renforcée</span> 228 dossiers</div><div><span class="pill g">Standard</span> 126 dossiers</div></div></div></div>
+          </div>
+          <div class="card">
+            <div class="ch"><h3>Avancement des synthèses LAB</h3></div>
+            <div class="cb"><div class="hbars" id="labProgress"></div></div>
+          </div>
+          <div class="card">
+            <div class="ch"><h3>Scoring de risque par code APE</h3><span class="hint">score auto · à traiter</span></div>
+            <div class="cb"><table class="tbl" id="apeTbl"></table></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⑦ RÉFÉRENTIEL -->
+      <section id="referentiel">
+        <div class="sec-head"><span class="num">7</span><h2>Référentiel <span style="font-size:12px;color:var(--ink-faint);font-family:var(--sans);font-weight:500">— données descriptives</span></h2>
+          <p></p></div>
+        <div class="card collapsible">
+          <div class="ch clickable" onclick="this.parentElement.querySelector('.cb').classList.toggle('hidden');this.querySelector('.chev').classList.toggle('open')">
+            <h3>Répartition & cartographie du portefeuille</h3><span class="chev open">▾</span></div>
+          <div class="cb">
+            <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
+              <div><h3 style="font-size:12px;margin-bottom:10px;color:var(--ink-soft)">Prestations proposées</h3><div class="hbars" id="prestaBars"></div></div>
+              <div><h3 style="font-size:12px;margin-bottom:10px;color:var(--ink-soft)">Secteur développé (géo)</h3><div class="hbars" id="geoBars"></div></div>
+              <div><h3 style="font-size:12px;margin-bottom:10px;color:var(--ink-soft)">Cross‑sell — prestations associées</h3><div class="matrix" id="cross"></div>
+                <div class="note" style="margin-top:10px">💡 <span>SAS → <b>Compta + Paie + Juridique</b> · SCI → <b>Compta + Fiscalité</b></span></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <div class="mh"><h3 id="modalTitle"></h3><button onclick="document.getElementById('overlay').classList.remove('show')">✕</button></div>
+    <div class="mb" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+/* ---------------- DATA (fictif, calé sur les chiffres fournis) ---------------- */
+const C = {primary:'#0F5E58',primarySoft:'#3E8B83',accent:'#B5751B',danger:'#A93B2C',positive:'#2F7D5B',info:'#2E5C88',ink:'#171B22',inkSoft:'#5C6470',line:'#E4DDCD'};
+const MONTHS=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+const devis2023=[14,16,21,9,27,18,15,11,17,19,16,12];
+const devis2022=[11,13,17,8,20,15,13,10,14,15,14,10];
+const ca2023=[16,19,24,11,30,21,18,13,20,22,18,14];   // k€
+const ca2022=[12,15,19,9,22,17,15,11,16,18,15,11];
+
+const sources=[ // [nom, volume%, transfo%]
+ ['Internet',34,52],['Proximité',19,61],['Partenaire',15,74],['Banque',12,78],
+ ['Adhérent',9,58],['COEC',7,66],['Collaborateur',4,71]];
+
+const heatData=[ // prestation x 12 mois (intensité 0-1)
+ ['Comptabilité',[.4,.5,.7,.3,1,.7,.5,.3,.6,.6,.5,.4]],
+ ['Fiscalité',  [.3,.4,.8,.9,1,.6,.3,.2,.3,.3,.3,.5]],
+ ['Paie',       [.6,.5,.5,.4,.6,.5,.5,.4,.7,.6,.5,.5]],
+ ['Juridique',  [.7,.4,.5,.3,.5,.6,.8,.3,.4,.5,.4,.6]],
+ ['SCI',        [.5,.4,.6,.3,.7,.5,.4,.3,.5,.5,.4,.4]]];
+
+const funnel=[ // étape, valeur, couleur
+ ['Prospects qualifiés',128,C.info],
+ ['Devis envoyés',97,C.primarySoft],
+ ['Devis relancés',71,C.primary],
+ ['Devis signés',61,C.positive]];
+
+const aging=[
+ ['SAS Verlaine','Compta + Paie','T. Roche',9.2,38,'r'],
+ ['SCI Montaigne','Compta','M. Lefèvre',3.1,27,'o'],
+ ['EURL Bartoli','Social','S. Bauer',5.4,21,'o'],
+ ['SARL Novak','Compta + Juridique','K. Haddad',7.8,52,'r'],
+ ['SAS Lumen','Paie','J. Mercier',4.2,14,'g']];
+
+const waterfall=[ // label, valeur (k€, signé/coûts négatifs visuels), type
+ ['CA signé',30,'pos'],['Coût prod.',-13.5,'neg'],['Sous‑traitance',-2.1,'neg'],['Remises',-1.4,'neg'],['Marge brute',13,'tot']];
+
+const marges=[['Juridique',58,C.positive],['Fiscalité',54,C.positive],['Comptabilité',47,C.primary],['Exceptionnelle',41,C.primary],['Paie',28,C.accent]];
+
+const bullets=[ // collab, actuel, objectif, max
+ ['M. Lefèvre',8.4,9,12],['T. Roche',11.2,9,12],['S. Bauer',6.1,8,12],['K. Haddad',7.3,9,12],['J. Mercier',5.2,7,12]];
+
+const rank=[['T. Roche',32.4,'74%',1],['M. Lefèvre',27.1,'63%',2],['K. Haddad',21.8,'59%',3],['S. Bauer',18.3,'55%',4],['J. Mercier',14.9,'48%',5]];
+
+const labProgress=[['À faire',2250,84,C.danger],['Validés',336,12,C.positive],['En cours',101,4,C.info],['À valider',5,0.2,C.accent]];
+
+const ape=[['6831Z — Agences immo.',92,'r',14],['4711B — Commerce détail',78,'r',9],['9602A — Coiffure',64,'o',22],['6201Z — Prog. info.',38,'g',31],['8690D — Activités santé',71,'o',7]];
+
+const presta=[['Comptabilité',60.7],['Paie',22.9],['Exceptionnelle',5.2],['Juridique',4.9],['Fiscalité',3.4],['Particulier',1.4],['SCI',1.3],['Gestion',0.2]];
+const geo=[['Strasbourg',26.1],['Paris',14.9],['Nice',11.2],['Marseille',9.6],['Le Havre',8.2],['Lille',8.0]];
+const cross=[['SAS',[1,.8,.6,.3]],['SCI',[.9,.2,.7,.2]],['SARL',[1,.6,.5,.4]],['EI',[.7,.3,.2,.5]]];
+const crossCols=['Compta','Paie','Fiscal.','Jurid.'];
+
+let showCmp=true, period=3;
+
+/* ---------------- KPI cards ---------------- */
+function spark(data,color){
+  const w=62,h=26,mn=Math.min(...data),mx=Math.max(...data);
+  const pts=data.map((v,i)=>`${(i/(data.length-1))*w},${h-((v-mn)/(mx-mn||1))*(h-4)-2}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+function renderKPIs(){
+  const k=[
+    {lab:'Devis signés · mai',val:'27',delta:'+35%',up:true,sp:devis2023,c:C.primary},
+    {lab:'CA signé · mai',val:'30<small>k€</small>',delta:'+36%',up:true,sp:ca2023,c:C.positive},
+    {lab:'Taux de transfo',val:'61<small>%</small>',delta:'+4 pts',up:true,sp:[52,55,58,49,61],c:C.info},
+    {lab:'Pipe pondéré',val:'47<small>k€</small>',delta:'18 devis',up:true,sp:[31,38,42,40,47],c:C.accent},
+    {lab:'Top · T. Roche',val:'11<small>k€</small>',delta:'124% obj.',up:true,sp:[7,9,8,10,11],c:C.primarySoft},
+    {lab:'LAB en retard',val:'312',delta:'+18 / sem.',up:false,alert:true,tap:true,drill:'lab'}
+  ];
+  document.getElementById('kpiGrid').innerHTML=k.map((x,i)=>`
+    <div class="kpi ${x.alert?'alert':''} ${x.tap?'tap':''}" style="animation-delay:${i*.05}s" ${x.drill?`onclick="openDrill('${x.drill}')"`:''}>
+      <div class="lab">${x.lab}</div>
+      <div class="val" style="${x.alert?'color:var(--danger)':''}">${x.val}</div>
+      <div class="delta ${x.up?'up':'down'}">${x.up?'▲':'▼'} ${x.delta}</div>
+      ${x.sp?spark(x.sp,x.c):''}
+    </div>`).join('');
+}
+
+/* ---------------- Devis combo chart ---------------- */
+let devisChart;
+function renderDevis(){
+  Chart.defaults.font.family="'Hanken Grotesk',sans-serif";
+  Chart.defaults.color=C.inkSoft;
+  const n=period, sl=a=>a.slice(12-n);
+  const labels=sl(MONTHS);
+  const ds=[
+    {type:'bar',label:'Devis signés 2023',data:sl(devis2023),backgroundColor:C.primary,borderRadius:5,yAxisID:'y',order:3},
+    {type:'line',label:'CA HT signé 2023 (k€)',data:sl(ca2023),borderColor:C.accent,backgroundColor:C.accent,borderWidth:2.5,tension:.35,pointRadius:3,yAxisID:'y1',order:1}
+  ];
+  if(showCmp){
+    ds.splice(1,0,{type:'bar',label:'Devis signés 2022',data:sl(devis2022),backgroundColor:'#CDBFA3',borderRadius:5,yAxisID:'y',order:4});
+    ds.push({type:'line',label:'CA HT signé 2022 (k€)',data:sl(ca2022),borderColor:'#C9B79A',borderWidth:2,borderDash:[5,4],tension:.35,pointRadius:0,yAxisID:'y1',order:2});
+  }
+  if(devisChart)devisChart.destroy();
+  devisChart=new Chart(document.getElementById('devisChart'),{data:{labels,datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'bottom',labels:{boxWidth:11,boxHeight:11,usePointStyle:true,font:{size:11}}},
+        tooltip:{backgroundColor:C.ink,padding:11,cornerRadius:8,titleFont:{family:"'Fraunces',serif"},bodyFont:{family:"'IBM Plex Mono',monospace",size:11}}},
+      scales:{y:{position:'left',grid:{color:'#EFE9DC'},title:{display:true,text:'Nb devis',font:{size:10}}},
+        y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'€ HT (k€)',font:{size:10}}},
+        x:{grid:{display:false}}}}});
+}
+
+/* ---------------- helpers ---------------- */
+function hbar(name,pct,color,labelInside){
+  return `<div class="hbar"><span class="name">${name}</span>
+    <div class="track"><div class="fill" style="width:${pct}%;background:${color}">${labelInside||''}</div></div>
+    <span class="pct">${labelInside?'':pct+'%'}</span></div>`;
+}
+function renderSources(){
+  const mx=Math.max(...sources.map(s=>s[1]));
+  document.getElementById('sourcesBars').innerHTML=sources.map(s=>{
+    const c=s[2]>=70?C.positive:s[2]>=60?C.primary:C.accent;
+    return `<div class="hbar"><span class="name">${s[0]}</span>
+      <div class="track"><div class="fill" style="width:${s[1]/mx*100}%;background:${c}">${s[1]}%</div></div>
+      <span class="pct">${s[2]}% <small style="color:var(--ink-faint)">tr.</small></span></div>`;}).join('');
+}
+function heatColor(v){const a=.12+v*.88;return `rgba(15,94,88,${a})`;}
+function renderHeat(){
+  let h='<div></div>'+MONTHS.map(m=>`<div class="hm">${m}</div>`).join('');
+  heatData.forEach(r=>{h+=`<div class="hl">${r[0]}</div>`+r[1].map(v=>`<div class="cell" style="background:${heatColor(v)};color:${v>.5?'#fff':'#5C6470'}" title="${Math.round(v*30)} devis">${Math.round(v*30)}</div>`).join('');});
+  document.getElementById('heat').innerHTML=h;
+}
+function renderFunnel(){
+  const mx=funnel[0][1];
+  document.getElementById('funnel').innerHTML=funnel.map((f,i)=>{
+    const w=40+f[1]/mx*60, drop=i>0?Math.round((1-f[1]/funnel[i-1][1])*100):0;
+    return `<div class="fstep"><div class="fbar" style="width:${w}%;background:${f[2]}">${f[0]}<span class="meta">${f[1]}</span></div>
+      ${i>0?`<span class="drop">−${drop}% à l'étape précédente</span>`:''}</div>`;}).join('');
+}
+function renderAging(){
+  document.getElementById('agingTbl').innerHTML=`<thead><tr><th>Prospect</th><th>Prestation</th><th class="num">k€</th><th class="num">Âge</th></tr></thead><tbody>`+
+    aging.map(a=>`<tr class="clickable" onclick="openDrill('aging')"><td><b>${a[0]}</b><br><span style="color:var(--ink-faint);font-size:11px">${a[2]}</span></td>
+      <td>${a[1]}</td><td class="num">${a[3].toFixed(1)}</td>
+      <td class="num"><span class="pill ${a[5]}">${a[4]} j</span></td></tr>`).join('')+`</tbody>`;
+}
+function renderWaterfall(){
+  const max=30; let cum=0;
+  document.getElementById('waterfall').innerHTML=waterfall.map(w=>{
+    let bottom,height,color,top;
+    if(w[2]==='pos'){bottom=0;height=w[1];cum=w[1];color=C.primary;}
+    else if(w[2]==='neg'){height=Math.abs(w[1]);cum+=w[1];bottom=cum;color=C.danger;}
+    else{bottom=0;height=w[1];color=C.positive;}
+    const hp=height/max*100, bp=bottom/max*100;
+    return `<div class="wcol"><div style="width:100%;height:100%;position:relative">
+      <div class="wbar" style="position:absolute;bottom:${bp}%;height:${hp}%;background:${color}">
+        <span class="wval">${w[1]>0?'':'−'}${Math.abs(w[1])}k</span></div></div>
+      <div class="wlab">${w[0]}</div></div>`;}).join('');
+}
+function renderMarges(){
+  document.getElementById('margeBars').innerHTML=marges.map(m=>hbar(m[0],m[1],m[2],m[1]+'%')).join('');
+}
+function renderBullets(){
+  document.getElementById('bullets').innerHTML=bullets.map(b=>{
+    const fp=b[1]/b[3]*100, tp=b[2]/b[3]*100, ok=b[1]>=b[2];
+    return `<div class="bullet"><div class="top"><b>${b[0]}</b><span class="v">${b[1]} / ${b[2]} k€ ${ok?'<span class="up">✓</span>':''}</span></div>
+      <div class="btrack"><div class="bfill" style="width:${fp}%;background:${ok?C.positive:C.ink}"></div>
+      <div class="btarget" style="left:${tp}%"></div></div></div>`;}).join('');
+}
+function renderRank(){
+  document.getElementById('rankTbl').innerHTML=`<thead><tr><th>#</th><th>Collaborateur</th><th class="num">CA k€</th><th class="num">Transfo</th></tr></thead><tbody>`+
+    rank.map(r=>`<tr><td><b style="font-family:var(--mono)">${r[3]}</b></td><td>${r[0]}</td><td class="num">${r[1]}</td>
+      <td class="num"><span class="pill ${parseInt(r[2])>=65?'g':parseInt(r[2])>=55?'o':'r'}">${r[2]}</span></td></tr>`).join('')+`</tbody>`;
+}
+function renderGauge(){
+  const pct=64, r=46, c=2*Math.PI*r, off=c*(1-pct/100);
+  document.getElementById('gauge').innerHTML=`<svg width="120" height="120" viewBox="0 0 120 120">
+    <circle cx="60" cy="60" r="${r}" fill="none" stroke="#EFE9DC" stroke-width="13"/>
+    <circle cx="60" cy="60" r="${r}" fill="none" stroke="${C.accent}" stroke-width="13" stroke-linecap="round"
+      stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 60 60)"/>
+    <text x="60" y="56" text-anchor="middle" font-family="'IBM Plex Mono'" font-size="26" font-weight="600" fill="${C.ink}">64%</text>
+    <text x="60" y="74" text-anchor="middle" font-size="10" fill="${C.inkSoft}">renforcée</text></svg>`;
+}
+function renderLabProgress(){
+  const mx=2250;
+  document.getElementById('labProgress').innerHTML=labProgress.map(l=>
+    `<div class="hbar"><span class="name">${l[0]}</span>
+      <div class="track"><div class="fill" style="width:${Math.max(l[1]/mx*100,3)}%;background:${l[3]}">${l[2]}%</div></div>
+      <span class="pct">${l[1].toLocaleString('fr')}</span></div>`).join('');
+}
+function renderApe(){
+  document.getElementById('apeTbl').innerHTML=`<thead><tr><th>Code APE</th><th class="num">Score</th><th class="num">À traiter</th></tr></thead><tbody>`+
+    ape.map(a=>`<tr><td>${a[0]}</td><td class="num"><span class="pill ${a[2]}">${a[1]}</span></td><td class="num">${a[3]}</td></tr>`).join('')+`</tbody>`;
+}
+function renderPresta(){
+  const mx=presta[0][1];
+  document.getElementById('prestaBars').innerHTML=presta.map((p,i)=>
+    hbar(p[0],p[1]/mx*100,i===0?C.primary:C.primarySoft,p[1]+'%')).join('');
+}
+function renderGeo(){
+  const mx=geo[0][1];
+  document.getElementById('geoBars').innerHTML=geo.map(g=>hbar(g[0],g[1]/mx*100,C.info,g[1]+'%')).join('');
+}
+function renderCross(){
+  let h='<div></div>'+crossCols.map(c=>`<div class="mh">${c}</div>`).join('');
+  cross.forEach(r=>{h+=`<div class="mr">${r[0]}</div>`+r[1].map(v=>`<div class="mc" style="background:rgba(181,117,27,${.1+v*.7});color:${v>.6?'#fff':C.ink}">${Math.round(v*100)}</div>`).join('');});
+  document.getElementById('cross').innerHTML=h;
+}
+
+/* ---------------- drill-down modal ---------------- */
+const drills={
+  lab:{title:'Dossiers LAB prioritaires — délai dépassé',
+    body:`<p style="color:var(--ink-soft);margin-bottom:14px">312 dossiers au-delà du délai réglementaire de mise à jour. Triés par risque décroissant.</p>
+    <table class="tbl"><thead><tr><th>Client</th><th>Vigilance</th><th class="num">Score APE</th><th class="num">Retard</th><th>Responsable</th></tr></thead><tbody>
+    ${[['SAS Verlaine','Renforcée',92,'+47 j','T. Roche','r'],['SCI Patrimoine 67','Renforcée',88,'+39 j','M. Lefèvre','r'],['SARL Atlas','Renforcée',78,'+31 j','K. Haddad','o'],['EURL Soleil','Standard',64,'+22 j','S. Bauer','o'],['SAS Helios','Renforcée',71,'+18 j','J. Mercier','o']]
+    .map(r=>`<tr><td><b>${r[0]}</b></td><td><span class="pill ${r[1]==='Renforcée'?'o':'g'}">${r[1]}</span></td><td class="num">${r[2]}</td><td class="num"><span class="pill ${r[5]}">${r[3]}</span></td><td>${r[4]}</td></tr>`).join('')}
+    </tbody></table>
+    <div class="note" style="margin-top:14px">💡 <span>Action proposée : <b>relance automatique</b> du responsable + blocage de la signature de nouveaux devis tant que la synthèse LAB n'est pas validée.</span></div>`},
+  aging:{title:'Devis en attente — pipeline à relancer',
+    body:`<p style="color:var(--ink-soft);margin-bottom:14px">18 devis non signés en attente — valeur pondérée 47 k€. Triés par âge.</p>
+    <table class="tbl"><thead><tr><th>Prospect</th><th>Prestation</th><th>Resp.</th><th class="num">k€</th><th class="num">Âge</th><th class="num">Proba</th></tr></thead><tbody>
+    ${aging.concat([['EI Durand','Compta','M. Lefèvre',2.4,8,'g'],['SAS Orion','Compta + Paie','T. Roche',6.9,44,'r']])
+    .map(a=>`<tr><td><b>${a[0]}</b></td><td>${a[1]}</td><td>${a[2]}</td><td class="num">${a[3].toFixed(1)}</td><td class="num"><span class="pill ${a[5]}">${a[4]} j</span></td><td class="num">${a[4]>40?'25%':a[4]>20?'50%':'75%'}</td></tr>`).join('')}
+    </tbody></table>
+    <div class="note" style="margin-top:14px">⚠ <span><b>2 devis</b> dépassent 40 jours sans relance — probabilité de signature divisée par 3 au-delà de ce seuil.</span></div>`}
+};
+function openDrill(k){
+  const d=drills[k];document.getElementById('modalTitle').textContent=d.title;
+  document.getElementById('modalBody').innerHTML=d.body;document.getElementById('overlay').classList.add('show');
+}
+
+/* ---------------- interactions ---------------- */
+document.querySelectorAll('#nav a').forEach(a=>a.onclick=()=>{
+  document.querySelectorAll('#nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');
+  document.getElementById(a.dataset.t).scrollIntoView({behavior:'smooth',block:'start'});
+  document.getElementById('sidebar').classList.remove('open');
+});
+const navMap={};document.querySelectorAll('#nav a').forEach(a=>navMap[a.dataset.t]=a);
+const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){
+  document.querySelectorAll('#nav a').forEach(x=>x.classList.remove('active'));navMap[e.target.id]?.classList.add('active');}}),
+  {rootMargin:'-30% 0px -60% 0px'});
+['synthese','activite','pipeline','rentabilite','performance','lab','referentiel'].forEach(id=>obs.observe(document.getElementById(id)));
+
+document.getElementById('cmpToggle').onclick=function(){this.classList.toggle('on');showCmp=this.classList.contains('on');renderDevis();};
+document.getElementById('testToggle').onclick=function(){this.classList.toggle('on');};
+document.querySelectorAll('#periodSeg button').forEach(b=>b.onclick=function(){
+  document.querySelectorAll('#periodSeg button').forEach(x=>x.classList.remove('on'));this.classList.add('on');
+  period=+this.dataset.p;renderDevis();});
+
+/* ---------------- init ---------------- */
+renderKPIs();renderDevis();renderSources();renderHeat();renderFunnel();renderAging();
+renderWaterfall();renderMarges();renderBullets();renderRank();renderGauge();
+renderLabProgress();renderApe();renderPresta();renderGeo();renderCross();
+</script>
+</body>
+</html>

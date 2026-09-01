@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Devizen — Tickets d'amélioration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F4F8; --card:#FFFFFF; --bd:#EAEAF1;
+    --ink:#2C2C3A; --muted:#7C7C8C; --faint:#9A9AAA;
+    --lav:#ECE9FB; --lav-tx:#6A57C9; --lav-bd:#D9D3F0;
+    --p1:#FCE3D5; --p1-tx:#C25A2B;
+    --p2:#FBF0D0; --p2-tx:#A87C10;
+    --p3:#DDF0E3; --p3-tx:#2E8B57;
+    --obs-bg:#F6F6FB; --obs-bd:#DAD6EE;
+    --chip:#EFEFF4; --chip-tx:#6B6B7D;
+    --sans:'Mulish',-apple-system,sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:34px 24px 60px}
+  .phead{margin-bottom:24px}
+  .phead h1{font-size:25px;font-weight:800;letter-spacing:-.3px}
+  .phead p{color:var(--muted);margin-top:5px;font-size:13.5px}
+  .phead .meta{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap}
+  .mtag{background:var(--card);border:1px solid var(--bd);border-radius:7px;padding:5px 11px;font-size:12px;font-weight:600;color:var(--muted)}
+  .mtag b{color:var(--ink)}
+
+  .sechead{display:flex;align-items:center;gap:10px;margin:30px 0 14px}
+  .sechead .dot{width:10px;height:10px;border-radius:50%}
+  .sechead h2{font-size:14px;font-weight:800;text-transform:uppercase;letter-spacing:.6px}
+  .sechead span{color:var(--faint);font-size:12.5px;font-weight:600}
+
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:15px;margin-bottom:16px;overflow:hidden;box-shadow:0 1px 2px rgba(40,40,70,.03),0 10px 26px -18px rgba(40,40,70,.2)}
+  .head{display:flex;align-items:center;gap:13px;padding:16px 20px;background:linear-gradient(180deg,#F6F4FC,#FFFFFF)}
+  .ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:19px;flex:none}
+  .title{font-size:16px;font-weight:700;flex:1;letter-spacing:-.1px}
+  .badges{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+  .pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;white-space:nowrap}
+  .pill.dom{background:var(--lav);color:var(--lav-tx);border:1px solid var(--lav-bd);font-family:var(--mono);font-weight:500;font-size:10.5px}
+  .pill.p1{background:var(--p1);color:var(--p1-tx)} .pill.p2{background:var(--p2);color:var(--p2-tx)} .pill.p3{background:var(--p3);color:var(--p3-tx)}
+
+  .body{padding:4px 20px 20px}
+  .ref{display:inline-flex;align-items:center;gap:7px;background:var(--chip);color:var(--chip-tx);border-radius:8px;padding:6px 12px;font-family:var(--mono);font-size:11.5px;margin:12px 0 4px}
+  .observe{background:var(--obs-bg);border-left:3px solid var(--obs-bd);border-radius:0 9px 9px 0;padding:13px 16px;margin-top:12px;color:var(--muted);font-size:13.5px}
+  .observe b,.block b{color:var(--ink);font-weight:700}
+  .observe em{font-style:normal;font-weight:700;color:#55556a}
+  .block{margin-top:15px;font-size:13.5px;color:#464653}
+  .block .lab{font-weight:700;color:var(--ink)}
+  .block ul{margin:7px 0 0 4px;list-style:none}
+  .block li{padding:3px 0 3px 18px;position:relative}
+  .block li::before{content:"";position:absolute;left:3px;top:11px;width:5px;height:5px;border-radius:50%;background:var(--lav-tx)}
+  .effort{display:inline-block;margin-top:11px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+  .effort.f{background:#DDF0E3;color:#2E8B57} .effort.m{background:#FBF0D0;color:#A87C10} .effort.e{background:#FCE3D5;color:#C25A2B}
+  .ok{color:#2E8B57;font-weight:700} .warn{color:#C25A2B;font-weight:700}
+
+  @media print{body{background:#fff}.card{box-shadow:none;break-inside:avoid}}
+  @media(max-width:560px){.head{flex-wrap:wrap}.badges{justify-content:flex-start;width:100%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="phead">
+    <h1>Refonte du tableau de bord Devizen</h1>
+    <p>Tickets d'amélioration priorisés — pilotage commercial &amp; conformité LAB</p>
+    <div class="meta">
+      <span class="mtag">Audit du <b>03/06/2026</b></span>
+      <span class="mtag"><b>17</b> points</span>
+      <span class="mtag"><b>6</b> P1 · <b>6</b> P2 · <b>2</b> P3 · <b>3</b> transversaux</span>
+    </div>
+  </div>
+  <div id="board"></div>
+</div>
+
+<script>
+const data=[
+ {sec:'P1 — Essentiel',cls:'p1',dot:'#C25A2B',count:'corrige un angle mort structurel ou un risque'},
+ {ic:'📊',tint:'#EAEAFA',title:`Aucune vue d'ensemble`,dom:`Accueil · nouveau`,prio:`P1`,cls:'p1',
+  ref:`13 sous-onglets · 0 page d'accueil`,
+  observe:`Le tableau de bord compte <em>13 sous-onglets</em> et aucune vue de synthèse : pour savoir où en est le cabinet, l'associé doit ouvrir chaque onglet et reconstituer mentalement la situation.`,
+  pourquoi:`La première question d'un associé est « où en est-on ce mois-ci ? ». Sans réponse en un coup d'œil, l'outil n'est pas un instrument de pilotage mais une collection de graphes.`,
+  solution:`Bandeau de cartes KPI en tête de page : devis du mois, CA signé, taux de transfo + variation N‑1, pipe pondéré, top collaborateur, dossiers LAB en retard. Chiffres cliquables (drill-down).`,effort:'m'},
+ {ic:'💰',tint:'#E2F2E8',title:`Le CA est piloté sans la marge`,dom:`Rentabilité · nouveau`,prio:`P1`,cls:'p1',
+  ref:`CA signé seul · pas de coût de production`,
+  observe:`Seul le <em>CA signé</em> est affiché. Aucun rapprochement avec le coût de production estimé (temps collaborateur).`,
+  pourquoi:`Le coût principal d'un cabinet est le temps passé. Un devis à fort CA mais chronophage peut être moins rentable qu'un petit. Piloter le CA seul revient à valoriser les mauvais dossiers — ex : la Paie, gros volume mais marge la plus faible.`,
+  solution:`Marge brute = CA − (heures budgétées × TJM chargé), déclinée par prestation / collaborateur / type de client ; alerte « devis à marge négative ». Visualisation : cascade + barres de marge %.`,effort:'e'},
+ {ic:'📈',tint:'#E6EEFB',title:`Pas de comparaison annuelle (saisonnalité)`,dom:`Devis`,prio:`P1`,cls:'p1',
+  ref:`1 seul exercice · graphes Cabinet+Site dupliqués`,
+  observe:`Les devis sont affichés sur un seul exercice, sans comparaison N‑1, et en double (un graphe Cabinet puis un graphe Site quasi identiques).`,
+  pourquoi:`L'activité est fortement saisonnière (clôtures fiscales → pic avril‑mai). Sans N‑1, impossible de distinguer une vraie croissance d'un simple effet de calendrier ; la planification de charge est aveugle.`,
+  solution:`Superposition N vs N‑1 (toggle), heatmap mois × prestation et indice de saisonnalité. Un seul graphe avec bascule Cabinet/Site.`,effort:'f'},
+ {ic:'⧖',tint:'#FBF0D2',title:`Aucun pipeline commercial`,dom:`Pipeline · nouveau`,prio:`P1`,cls:'p1',
+  ref:`devis non signés ni valorisés ni suivis`,
+  observe:`Les devis non signés ne sont ni valorisés ni suivis dans le temps. Aucune notion de probabilité, d'âge ou d'entonnoir.`,
+  pourquoi:`Un CRM doit anticiper le CA et déclencher l'action. Sans âge ni probabilité, les affaires « dorment » : au-delà de 40 jours sans relance, la probabilité de signature est divisée par 3.`,
+  solution:`Valeur pondérée du pipe (montant × proba par stade), entonnoir de conversion, tableau d'aging avec alertes de relance, durée moyenne du cycle de vente.`,effort:'m'},
+ {ic:'⚖️',tint:'#FBE6D8',title:`La conformité LAB est descriptive, pas actionnable`,dom:`LAB · CMF L.561 · NPLAB`,prio:`P1 — Réglementaire`,cls:'p1',
+  ref:`2 250 « à faire » (84%) · 312 hors délai`,
+  observe:`La section LAB affiche les volumes (84 % « à faire », 312 dossiers hors délai) mais <em>ne déclenche aucune action</em> : ni alerte de dépassement, ni priorisation, ni affectation.`,
+  pourquoi:`Obligation déontologique de l'Ordre + TRACFIN. En cas de contrôle, l'absence de traitement dans les délais expose directement le cabinet. Une barre de progression ne protège pas.`,
+  solution:`En deux niveaux :`,
+  bullets:[`<b>Alerting</b> : alerte de dépassement de délai par dossier + relance automatique du responsable.`,`<b>Priorisation</b> : scoring de risque automatique par code APE, et blocage de signature tant que la synthèse LAB n'est pas validée.`],effort:'m'},
+ {ic:'📊',tint:'#EAEAFA',title:`Camemberts 3D illisibles`,dom:`Prestations · Référentiel`,prio:`P1 — Quick win`,cls:'p1',
+  ref:`camembert 3D · jusqu'à 9 parts`,
+  observe:`Plusieurs onglets (prestations, secteurs, géographie) utilisent des <em>camemberts 3D à 9 parts</em>. Les parts < 2 % sont du bruit, et le 3D grossit les parts situées à l'avant.`,
+  pourquoi:`Le 3D fausse la perception des proportions et, au-delà de 6 parts, un camembert devient illisible : l'utilisateur ne peut pas comparer fiablement.`,
+  solution:`Barres horizontales triées (comparaison fiable), treemap si beaucoup de catégories, carte choroplèthe pour la géographie.`,effort:'f'},
+
+ {sec:'P2 — Fort ROI',cls:'p2',dot:'#A87C10',count:'forte valeur, sur des données bientôt disponibles'},
+ {ic:'🎯',tint:'#FBF0D2',title:`Pas d'objectifs ni de suivi de performance`,dom:`Objectifs · nouveau`,prio:`P2`,cls:'p2',
+  ref:`aucune cible saisie`,
+  observe:`Aucun objectif n'est saisi ni suivi, ni par collaborateur ni par cabinet.`,
+  pourquoi:`Un objectif visible anime l'équipe, cadre les entretiens et fait remonter les écarts tôt plutôt qu'en fin d'exercice.`,
+  solution:`Saisie d'objectifs mensuels/annuels et avancement vs objectif en bullet charts (écart en € et %), avec classement d'équipe.`,effort:'m'},
+ {ic:'👤',tint:'#E6EEFB',title:`La valeur client n'est pas suivie`,dom:`Portefeuille · nouveau`,prio:`P2`,cls:'p2',
+  ref:`montant de devis ≠ valeur client`,
+  observe:`On suit le montant des devis, mais pas le panier moyen ni le CA récurrent annuel confié par client.`,
+  pourquoi:`Une lettre de mission est récurrente : la vraie valeur est l'ARR, pas le one‑shot. Sans segmentation par tranche de CA, impossible de cibler les clients à développer.`,
+  solution:`Panier moyen et son évolution, segmentation des clients par tranche de CA annuel, distinction récurrent / ponctuel.`,effort:'m'},
+ {ic:'⏱️',tint:'#E2F2E8',title:`Délais et réactivité non mesurés`,dom:`Pipeline`,prio:`P2`,cls:'p2',
+  ref:`délais prospect→devis→signature`,
+  observe:`Aucun indicateur de délai : ni création prospect → 1er devis, ni envoi → signature, ni effet des relances.`,
+  pourquoi:`La réactivité est un levier de transformation sous-estimé. Objectiver les délais permet de fixer des SLA internes et de mesurer l'impact des relances.`,
+  solution:`Délais moyens (prospect→devis, devis→signature), taux de relance et impact mesuré sur la transformation.`,effort:'m'},
+ {ic:'📡',tint:'#EAEAFA',title:`Les sources affichent le volume, pas la performance`,dom:`Sources`,prio:`P2`,cls:'p2',
+  ref:`volume seul, sans taux de transfo`,
+  observe:`L'onglet sources montre le volume par canal, mais pas le taux de transformation ni le CA généré par source.`,
+  pourquoi:`« Internet apporte du volume » ≠ « Internet rapporte ». Banque et Partenaire transforment ~2× mieux qu'Internet : sans cette lecture, l'effort d'acquisition est mal orienté.`,
+  solution:`Afficher volume ET taux de transformation (et panier moyen) côte à côte par source.`,effort:'f'},
+ {ic:'🔄',tint:'#E6EEFB',title:`Le taux de transfo est un camembert binaire`,dom:`Transformation`,prio:`P2`,cls:'p2',
+  ref:`camembert Oui/Non 61/39`,
+  observe:`Le taux de transformation est rendu par un <em>camembert à deux parts</em> (61 % / 39 %), sans évolution ni détail.`,
+  pourquoi:`Un binaire en camembert gaspille la place et n'apprend rien : ni la tendance, ni le « où l'on perd les affaires ».`,
+  solution:`Grand chiffre + courbe de tendance + segmentation (par prestation, source, montant, collaborateur) ; les « 39 non transformés » deviennent cliquables.`,effort:'f'},
+ {ic:'🔔',tint:'#FBF0D2',title:`Aucune alerte ni vue personnalisable`,dom:`Paramètres`,prio:`P2`,cls:'p2',
+  ref:`pas de seuils · filtres non persistants`,
+  observe:`Aucun seuil d'alerte configurable, et les filtres ne sont pas sauvegardés d'une session à l'autre.`,
+  pourquoi:`Le pilotage par exception (l'outil signale au lieu qu'on cherche) fait gagner du temps et fiabilise le suivi.`,
+  solution:`Seuils d'alerte configurables (ex : transfo < 50 %, marge < X %, devis > 45 j) + vues filtrées sauvegardées et partageables.`,effort:'m'},
+
+ {sec:'P3 — Différenciant',cls:'p3',dot:'#2E8B57',count:'à traiter une fois la base solide'},
+ {ic:'🔗',tint:'#E2F2E8',title:`Pas d'analyse de cross / up-sell`,dom:`Référentiel`,prio:`P3`,cls:'p3',
+  ref:`combinaisons de prestations non analysées`,
+  observe:`Les combinaisons de prestations vendues ensemble ne sont pas analysées.`,
+  pourquoi:`Vendre une prestation complémentaire à un client existant augmente le CA à coût d'acquisition quasi nul.`,
+  solution:`Matrice d'association des prestations + recommandations par profil (SAS → Compta+Paie+Juridique ; SCI → Compta+Fiscalité).`,effort:'m'},
+ {ic:'✉️',tint:'#EAEAFA',title:`Aucun rapport automatique`,dom:`Paramètres`,prio:`P3`,cls:'p3',
+  ref:`diffusion manuelle uniquement`,
+  observe:`Les chiffres ne sont consultables qu'en se connectant ; aucun envoi programmé.`,
+  pourquoi:`Un rapport périodique par rôle installe un rituel de pilotage régulier sans friction.`,
+  solution:`Export PDF de la synthèse envoyé en hebdo/mensuel, paramétrable par rôle (associé, manager, collaborateur).`,effort:'f'},
+
+ {sec:'Transversal — Ergonomie',cls:'p1',dot:'#6A57C9',count:'s'+'\u2019'+'applique à tout le tableau de bord'},
+ {ic:'👆',tint:'#EAEAFA',title:`Les chiffres sont des culs-de-sac`,dom:`Toutes sections`,prio:`UX`,cls:'p3',
+  ref:`« 39 non transformés », « 312 LAB »…`,
+  observe:`Les chiffres clés ne sont pas cliquables : impossible d'ouvrir la liste qui se cache derrière.`,
+  pourquoi:`Un chiffre qui ne mène à rien n'est pas actionnable. Le drill-down transforme un constat en liste d'action.`,
+  solution:`Rendre chaque chiffre clé cliquable → ouverture de la liste filtrée correspondante (devis, dossiers LAB…).`,effort:'m'},
+ {ic:'🗂️',tint:'#E6EEFB',title:`Navigation à 13 sous-onglets`,dom:`Architecture`,prio:`UX`,cls:'p3',
+  ref:`13 onglets plats`,
+  observe:`13 sous-onglets de même niveau, dont plusieurs purement descriptifs en façade.`,
+  pourquoi:`La charge cognitive est élevée et l'ordre ne suit pas le raisonnement d'un associé.`,
+  solution:`Réorganiser en 6 sections de pilotage + 1 « Référentiel » regroupé (types de marché, secteurs, géo, modèles).`,effort:'m'},
+ {ic:'📉',tint:'#E2F2E8',title:`Graphes Cabinet + Site dupliqués`,dom:`Plusieurs onglets`,prio:`UX`,cls:'p3',
+  ref:`2 graphes quasi identiques empilés`,
+  observe:`Chaque onglet empile deux graphes presque identiques (Cabinet puis Site), ce qui double le scroll.`,
+  pourquoi:`Redondance visuelle et perte de place sans gain d'information.`,
+  solution:`Un seul graphe avec bascule Cabinet/Site (ou small multiples côte à côte).`,effort:'f'}
+];
+
+const effortTxt={f:'Effort : faible',m:'Effort : moyen',e:'Effort : élevé'};
+const board=document.getElementById('board');
+board.innerHTML=data.map(d=>{
+ if(d.sec) return `<div class="sechead"><span class="dot" style="background:${d.dot}"></span><h2>${d.sec}</h2><span>— ${d.count}</span></div>`;
+ const sol = d.bullets
+   ? `<span class="lab">Solution :</span> ${d.solution}<ul>${d.bullets.map(b=>`<li>${b}</li>`).join('')}</ul>`
+   : `<span class="lab">Solution :</span> ${d.solution}`;
+ return `<div class="card">
+   <div class="head">
+     <div class="ic" style="background:${d.tint}">${d.ic}</div>
+     <div class="title">${d.title}</div>
+     <div class="badges"><span class="pill dom">${d.dom}</span><span class="pill ${d.cls}">${d.prio}</span></div>
+   </div>
+   <div class="body">
+     <div class="ref">📄 ${d.ref}</div>
+     <div class="observe"><b>Observé (existant) :</b> ${d.observe}</div>
+     <div class="block"><span class="lab">Pourquoi c'est critique :</span> ${d.pourquoi}</div>
+     <div class="block">${sol}<br><span class="effort ${d.effort}">${effortTxt[d.effort]}</span></div>
+   </div>
+ </div>`;
+}).join('');
+</script>
+</body>
+</html>
