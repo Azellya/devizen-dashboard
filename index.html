@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Devizen — Tableau de bord cabinet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;500;600;700;800&family=PT+Serif:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --nav:#16277D;--blue:#1B53D6;--blue2:#4E84F0;--blueLt:#C2CBDD;--bluePale:#E9F0FD;
+    --bg:#F2F3F6;--surface:#FFF;--surf2:#F8F9FB;--ink:#2A2F3A;--muted:#737A86;--faint:#9AA0AB;
+    --line:#E4E6EC;--lineSoft:#EEF0F4;
+    --rec:#1B53D6;--pon:#E0A23C;--green:#2E9B63;--greenP:#DBF0E3;--amber:#C77D11;--amberP:#F6E9CF;
+    --red:#C0392B;--redP:#F6DDD9;--info:#2E5C88;--infoP:#DBE6F0;
+    --shadow:0 1px 2px rgba(20,30,70,.04),0 6px 22px -14px rgba(20,30,70,.22);
+    --serif:'PT Serif',Georgia,serif;--sans:'Mulish',-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .topnav{background:var(--nav);color:#fff;height:52px;display:flex;align-items:center;padding:0 26px;gap:26px;position:sticky;top:0;z-index:50}
+  .topnav a{color:#C8D0EC;text-decoration:none;font-weight:600;font-size:14px;cursor:pointer}
+  .topnav a.on{color:#fff}.topnav .right{margin-left:auto;display:flex;align-items:center;gap:16px}
+  .topnav .sep{width:1px;height:22px;background:#3A4894}.topnav .ic{font-size:17px;opacity:.9}.topnav .user{display:flex;gap:7px;font-weight:600}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 22px}
+  .head{display:flex;align-items:center;gap:14px;padding:16px 0 6px}
+  .logo{width:54px;height:42px;background:#E2231A;border-radius:4px;display:grid;place-items:center;flex:none;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .logo b{font-family:var(--serif);font-style:italic;font-weight:700;color:#fff;font-size:23px;letter-spacing:-1px;transform:skewX(-6deg)}
+  .head .chev{color:var(--muted);font-size:18px}.head h1{font-size:22px;font-weight:700;color:#3a4150}
+  .head .test{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);font-weight:700}
+  .sw{width:34px;height:18px;border-radius:20px;background:#C9CDD6;position:relative;cursor:pointer;transition:.2s;flex:none}
+  .sw::after{content:"";position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;top:2px;left:2px;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+  .sw.on{background:var(--blue)}.sw.on::after{left:18px}
+  .filters{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:14px 18px;display:flex;gap:13px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px}
+  .field{display:flex;flex-direction:column;gap:3px;min-width:135px}
+  .field label{font-size:11px;font-style:italic;color:var(--muted);padding-left:2px}
+  .field .inp{border:1px solid var(--line);border-radius:7px;padding:8px 11px;display:flex;align-items:center;justify-content:space-between;background:#fff;font-size:12.5px}
+  .field .inp.ph{color:var(--faint)}.field select{border:1px solid var(--line);border-radius:7px;padding:8px 11px;font-family:inherit;font-size:12.5px;background:#fff;appearance:none;cursor:pointer;width:100%}
+  .field.gr{margin-left:auto}
+  .seg{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg button{border:0;background:transparent;padding:8px 12px;font-family:inherit;font-size:12px;color:var(--muted);cursor:pointer;font-weight:600;border-right:1px solid var(--lineSoft)}
+  .seg button:last-child{border-right:0}.seg button.on{background:var(--blue);color:#fff}
+  .seg.rec button.on{background:var(--rec)}.seg.miss button[data-m="rec"].on{background:var(--rec)}.seg.miss button[data-m="pon"].on{background:var(--pon)}
+  .cmp{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:7px 11px;cursor:pointer;font-weight:600;font-size:12px;color:var(--muted);background:#fff;white-space:nowrap}
+  .cmp.exp{background:#1D6F42;border-color:#1D6F42;color:#fff}
+  .expmenu{position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1px solid var(--line);border-radius:9px;box-shadow:0 12px 32px -10px rgba(20,30,70,.32);padding:6px;display:none;z-index:60;min-width:248px}
+  .expmenu.show{display:block}
+  .expmenu button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:9px 11px;border-radius:7px;font-family:inherit;font-size:12.5px;color:var(--ink);cursor:pointer;font-weight:600}
+  .expmenu button:hover{background:var(--bluePale)}
+  .ptabs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .ptab{background:var(--surface);border:1px solid var(--line);border-bottom:0;border-radius:8px 8px 0 0;padding:14px;text-align:center;font-weight:700;letter-spacing:.5px;font-size:13px;color:var(--muted);cursor:pointer;text-transform:uppercase}
+  .ptab.on{background:var(--nav);color:#fff;border-color:var(--nav)}
+  .stabs{display:flex;gap:2px;border-bottom:1px solid var(--line);background:var(--surface);padding:0 6px;overflow-x:auto;margin-bottom:16px}
+  .stab{padding:13px 13px;font-size:11.5px;letter-spacing:.3px;text-transform:uppercase;color:var(--muted);cursor:pointer;white-space:nowrap;border-bottom:2.5px solid transparent;font-weight:600}
+  .stab.on{color:var(--ink);border-bottom-color:var(--nav)}.stab:hover{color:var(--ink)}
+  .stab .nb{background:var(--red);color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:10px;margin-left:4px;vertical-align:1px}
+  .stab.star::before{content:"★";color:var(--amber);margin-right:4px;font-size:10px}
+  .panel{display:none}.panel.on{display:block;animation:fade .3s}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);margin-bottom:16px}
+  .card .top{display:flex;align-items:center;justify-content:center;padding:15px 18px 0;position:relative}
+  .card .title{font-family:var(--serif);font-size:17px;color:#3a4150;text-align:center}
+  .card .hint{position:absolute;right:18px;top:16px;font-size:10.5px;letter-spacing:.4px;color:var(--faint);text-transform:uppercase;font-weight:600;cursor:pointer}
+  .card .body{padding:16px 20px 20px}.grid{display:grid;gap:16px}
+  .kpis{grid-template-columns:repeat(6,1fr)}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 15px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .kpi .lab{font-size:11px;color:var(--muted);font-weight:700}
+  .kpi .val{font-size:24px;font-weight:800;margin-top:7px;color:#222a3a;line-height:1;letter-spacing:-.5px}
+  .kpi .val small{font-size:13px;color:var(--faint);font-weight:700}
+  .kpi .d{font-size:11px;font-weight:700;margin-top:5px;display:inline-flex;gap:3px}
+  .up{color:var(--green)}.down{color:var(--red)}
+  .kpi.hl{border-color:var(--rec);background:linear-gradient(180deg,var(--bluePale),#fff 62%)}
+  .kpi.alert{border-color:var(--red);background:linear-gradient(180deg,var(--redP),#fff 62%)}
+  .kpi .spark{position:absolute;right:11px;bottom:11px;width:54px;height:22px;opacity:.9}
+  .kpi.tap{cursor:pointer;transition:.15s}.kpi.tap:hover{transform:translateY(-2px)}
+  .hbars{display:flex;flex-direction:column;gap:9px}
+  .hbar{display:grid;grid-template-columns:140px 1fr 72px;align-items:center;gap:10px;font-size:12.5px}
+  .hbar .name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hbar .track{height:19px;background:var(--bluePale);border-radius:5px;overflow:hidden}
+  .hbar .fill{height:100%;border-radius:5px;display:flex;align-items:center;justify-content:flex-end;padding-right:7px;color:#fff;font-size:10px;font-weight:700}
+  .hbar .pct{text-align:right;color:var(--muted);font-weight:600}
+  table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.tbl th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--faint);font-weight:700;padding:8px;border-bottom:1px solid var(--line)}
+  table.tbl td{padding:9px 8px;border-bottom:1px solid var(--lineSoft)}table.tbl tr:last-child td{border-bottom:0}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .pill{font-size:10.5px;font-weight:800;padding:2px 9px;border-radius:20px}
+  .pill.rec{background:var(--bluePale);color:var(--rec)}.pill.pon{background:var(--amberP);color:var(--amber)}
+  .pill.r{background:var(--redP);color:var(--red)}.pill.o{background:var(--amberP);color:var(--amber)}.pill.g{background:var(--greenP);color:var(--green)}
+  .funnel{display:flex;flex-direction:column;gap:8px}
+  .fbar{height:44px;border-radius:7px;display:flex;align-items:center;padding:0 15px;color:#fff;font-weight:700;font-size:13px;position:relative}
+  .fbar .m{position:absolute;right:15px;opacity:.95}.drop{font-size:11px;color:var(--red);font-weight:700;padding:2px 0 0 6px}
+  .heat{display:grid;grid-template-columns:104px repeat(12,1fr);gap:3px;font-size:10px}
+  .heat .hl{font-weight:700;color:var(--muted);display:flex;align-items:center;font-size:11px}
+  .heat .hm{text-align:center;color:var(--faint);font-weight:700;font-size:9.5px}
+  .heat .cell{aspect-ratio:1.5;border-radius:4px;display:grid;place-items:center;font-size:9.5px;font-weight:700}
+  .bullet{margin-bottom:14px}.bullet .t{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px}
+  .bullet .t b{font-weight:700}.bullet .t .v{color:var(--muted);font-weight:600}
+  .btrack{position:relative;height:18px;border-radius:5px;background:linear-gradient(90deg,var(--redP),var(--amberP),var(--greenP))}
+  .bfill{position:absolute;left:0;top:3px;height:12px;border-radius:4px}.btarget{position:absolute;top:-3px;height:24px;width:3px;background:var(--red);border-radius:2px}
+  .legend{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;font-size:12px;color:var(--muted);font-weight:600;margin-top:12px}
+  .legend i{width:11px;height:11px;border-radius:3px;display:inline-block;margin-right:6px;vertical-align:-1px}
+  .note{font-size:11.5px;color:var(--muted);background:var(--surf2);border:1px dashed var(--line);border-radius:8px;padding:10px 13px;display:flex;gap:8px;align-items:flex-start;line-height:1.45}
+  .note b{color:var(--blue)}.note.warn{background:var(--redP);border-color:#E9B9B1;color:#8e2b20}.note.warn b{color:var(--red)}
+  .stat2{display:flex;gap:28px;justify-content:center;align-items:center;flex-wrap:wrap}
+  .stat2 .s{text-align:center}.stat2 .s .big{font-size:30px;font-weight:800;line-height:1}.stat2 .s .lab{color:var(--muted);font-weight:600;font-size:12px;margin-top:4px}
+  .bubble{position:fixed;right:24px;bottom:24px;width:48px;height:48px;border-radius:50%;background:var(--blue);display:grid;place-items:center;color:#fff;font-size:22px;box-shadow:0 8px 20px -6px rgba(27,83,214,.6);z-index:40}
+  .overlay{position:fixed;inset:0;background:rgba(20,28,60,.4);display:none;place-items:center;z-index:90;padding:24px}
+  .overlay.show{display:grid}
+  .modal{background:#fff;border-radius:12px;max-width:680px;width:100%;max-height:84vh;overflow:auto;box-shadow:0 30px 80px -20px rgba(0,0,0,.5)}
+  .modal .mh{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff}
+  .modal .mh h3{font-family:var(--serif);font-size:18px}.modal .mh button{border:0;background:var(--surf2);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:15px;color:var(--muted)}
+  .modal .mb{padding:18px 22px}.impro{display:inline-block;background:var(--bluePale);color:var(--blue);font-size:10px;font-weight:800;letter-spacing:.4px;padding:2px 8px;border-radius:5px;text-transform:uppercase;margin-bottom:10px}
+  @media(max-width:1000px){.kpis{grid-template-columns:repeat(3,1fr)}.filters{justify-content:flex-start}.field.gr{margin-left:0}}
+  @media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}.topnav{gap:14px;overflow-x:auto}}
+  /* ===== LAB — styles du projet Cartographie LBC-FT ===== */
+  .tab-section-title{font-size:12px;font-weight:700;color:#374151;letter-spacing:.06em;text-transform:uppercase;margin-bottom:18px}
+  .vig-wrap{display:flex;align-items:center;gap:32px;flex-wrap:wrap}
+  .vig-chart-wrap{position:relative;width:160px;height:160px;flex-shrink:0}
+  .vig-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+  .vig-pct{font-size:24px;font-weight:700;color:#e74c3c;line-height:1}
+  .vig-label-sm{font-size:10px;color:#888;text-align:center;text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+  .vig-list{flex:1;min-width:240px}
+  .vig-item{display:flex;align-items:center;justify-content:space-between;border:1px solid #e5e7eb;border-radius:4px;padding:10px 14px;margin-bottom:8px}
+  .vig-item:last-child{margin-bottom:0}
+  .vig-dot-wrap{display:flex;align-items:center;gap:8px;font-size:13px;color:#374151}
+  .vig-dot{width:10px;height:10px;border-radius:50%}
+  .vig-count{font-size:22px;font-weight:700;color:#374151}
+  .synth-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+  .synth-kpi-label{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px}
+  .synth-kpi-val{font-size:20px;font-weight:700;color:#374151}
+  .synth-bar{height:14px;background:#e5e7eb;border-radius:7px;overflow:hidden;margin:16px 0;display:flex}
+  .synth-bar-seg{height:100%;transition:width .5s}
+  .synth-legend{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .synth-leg-item{display:flex;align-items:center;justify-content:space-between;border:1px solid #e5e7eb;border-radius:4px;padding:9px 12px}
+  .synth-leg-label{display:flex;align-items:center;gap:6px;font-size:12px;color:#374151}
+  .synth-leg-dot{width:9px;height:9px;border-radius:50%}
+  .synth-leg-n{font-size:20px;font-weight:700;color:#374151}
+  .mm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+  .mm-stat{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px 14px;text-align:center}
+  .mm-stat-n{font-size:24px;font-weight:700}
+  .mm-stat-l{font-size:11px;color:#888;margin-top:2px}
+  .mm-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+  .mm-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px}
+  .mm-name{flex:1;color:#1B6EBD;font-weight:500}
+  .mm-date{font-size:11px;color:#888;width:48px;text-align:right}
+  .mm-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;width:72px;text-align:center}
+  .ape-cards{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
+  .ape-card{border:1px solid #e5e7eb;border-radius:6px;padding:10px;cursor:pointer;transition:border-color .15s;position:relative;overflow:hidden}
+  .ape-card:hover,.ape-card.selected{border-color:#1B3A8C;background:#f0f4ff}
+  .ape-rank{font-size:10px;color:#aaa;font-weight:600}
+  .ape-name-main{font-size:12px;font-weight:600;color:#374151;margin:2px 0;line-height:1.3;min-height:32px}
+  .ape-code{font-size:10px;color:#888}
+  .ape-footer{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+  .ape-nn{font-size:11px;color:#555}
+  .ape-nn span{font-size:9px;color:#888;text-transform:uppercase}
+  .ape-pct-badge{font-size:11px;font-weight:700;background:#FECACA;color:#991B1B;padding:2px 6px;border-radius:3px}
+  .ape-second-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .ape-explorer{margin-top:14px;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden}
+  .ape-explorer select{width:100%;padding:10px 12px;border:none;border-bottom:1px solid #e5e7eb;font-size:12px;font-family:inherit;outline:none;background:#fff;cursor:pointer}
+  .ape-explorer-content{padding:12px;font-size:12px;color:#374151}
+  .av-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .av-bar-label{font-size:12px;color:#374151;font-weight:500;width:140px;flex-shrink:0}
+  .av-bar-track{flex:1;height:12px;background:#f3f4f6;border-radius:6px;overflow:hidden}
+  .av-bar-fill{height:100%;border-radius:6px;transition:width .5s}
+  .av-bar-pct{font-size:12px;font-weight:600;width:36px;text-align:right}
+  .av-count{font-size:11px;color:#888;width:60px;text-align:right}
+  .carto-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+  .carto-filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .carto-filter-label{font-size:12px;color:#888}
+  .sig-select{font-size:12px;padding:6px 10px;border:1px solid #c8cdd8;border-radius:4px;outline:none;font-family:inherit;cursor:pointer;background:#fff}
+  .carto-export{font-size:12px;padding:6px 14px;border:1px solid #1B3A8C;border-radius:4px;color:#1B3A8C;background:#fff;cursor:pointer;font-family:inherit;transition:all .15s}
+  .carto-export:hover{background:#1B3A8C;color:#fff}
+  .carto-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px}
+  .ck{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px 14px;border-top:3px solid transparent}
+  .ck-label{font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+  .ck-val{font-size:26px;font-weight:700}
+  .ck-meta{font-size:11px;color:#888;margin-top:3px}
+  .carto-dim-strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:16px}
+  .cd{background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:12px;cursor:pointer;transition:border-color .15s;position:relative;overflow:hidden}
+  .cd:hover{border-color:#1B3A8C}
+  .cd-code{font-size:10px;font-weight:700;color:#1B3A8C;letter-spacing:.04em}
+  .cd-name{font-size:10px;color:#888;margin:2px 0 6px;line-height:1.3;height:26px}
+  .cd-score{font-size:22px;font-weight:700}
+  .cd-pill{font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;display:inline-block;margin-top:4px}
+  .cd-n{font-size:10px;color:#aaa;margin-top:4px}
+  .cd-bar{position:absolute;bottom:0;left:0;right:0;height:3px}
+  .cd-bar-fill{height:100%;transition:width .5s}
+  .carto-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  .carto-panel{background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:14px 16px}
+  .carto-panel-title{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+  .carto-grid3{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px}
+  .carto-ape-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+  .carto-ape-row:last-child{margin-bottom:0}
+  .carto-ape-lbl{font-size:11px;color:#374151;width:160px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .carto-ape-track{flex:1;height:8px;background:#f3f4f6;border-radius:4px;overflow:hidden}
+  .carto-ape-fill{height:100%;border-radius:4px;transition:width .5s}
+  .carto-ape-pct{font-size:11px;font-weight:700;width:32px;text-align:right}
+  .carto-ape-n{font-size:10px;color:#aaa;width:36px;text-align:right}
+  .ope-item{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #f0f0f0}
+  .ope-item:last-child{border-bottom:none;padding-bottom:0}
+  .ope-nm{font-size:11px;font-weight:500;color:#374151}
+  .ope-dt{font-size:10px;color:#aaa;margin-top:1px}
+  .ope-tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;flex-shrink:0}
+  .sig-table-wrap{background:#fff;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden}
+  .sig-tbl{width:100%;border-collapse:collapse}
+  .sig-tbl th{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.04em;padding:10px 14px;text-align:left;background:#f9fafb;border-bottom:1px solid #e5e7eb}
+  .sig-tbl th:last-child{text-align:right}
+  .sig-tbl td{padding:9px 14px;border-bottom:1px solid #f0f0f0;vertical-align:middle;font-size:12px}
+  .sig-tbl tr:last-child td{border-bottom:none}
+  .sig-tbl td:last-child{text-align:right}
+  .sig-cell{display:flex;align-items:center;gap:9px}
+  .sig-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+  .sig-nm{font-size:12px;font-weight:600;color:#374151}
+  .sig-role{font-size:10px;color:#aaa}
+  .mini-bar-wrap{height:6px;background:#f3f4f6;border-radius:3px;width:80px}
+  .mini-bar-fill{height:100%;border-radius:3px;background:#e74c3c}
+</style>
+</head>
+<body>
+<div class="topnav"><a class="on">Tableau de bord</a><a>Prospects</a><a>Suivis</a><a>Tâches</a><a>Clients</a><a>Prospects archivés</a>
+  <div class="right"><div class="sep"></div><span class="ic">🔔</span><div class="user">👤 Sulyvan ▾</div></div></div>
+<div class="wrap">
+  <div class="head"><div class="logo"><b>ec</b></div><span class="chev">❯</span><h1>Tableau de bord</h1>
+    <div class="test">Prospects 'test'<span id="exL" style="color:var(--ink);font-weight:700">Exclure</span><div class="sw" id="testSw" onclick="toggleTest()"></div><span id="inL">Inclure</span></div></div>
+
+  <div class="filters">
+    <div class="field"><label>Connecté en tant que</label><select id="fViewer" onchange="setViewer(this.value)"><option value="admin">Admin cabinet</option><option value="charb">J. Martin — Manager (Dijon+Lyon, site entier)</option><option value="pannier">C. Dubois — Collab. (Dijon+Lyon, resp.)</option><option value="dubost">A. Leroy — Collab. (Dijon, resp.)</option><option value="lyon">Resp. site Lyon (Lyon, site entier)</option></select></div>
+    <div style="width:1px;align-self:stretch;background:var(--line);margin:2px 0"></div>
+    <div class="field"><label>Cabinet</label><div class="inp">Démo</div></div>
+    <div class="field"><label>Site</label><select id="fSite" onchange="setSite(this.value)"><option value="all">Tous les sites</option><option value="Dijon">Dijon</option><option value="Lyon">Lyon (synthétique)</option></select></div>
+    <div class="field"><label>Collaborateur (responsable)</label><select id="fCol" onchange="setCol(this.value)"><option value="all">Tous</option><option>MARTIN Julien</option><option>DUBOIS Camille</option><option>MOREAU Sophie</option><option>LEROY Antoine</option></select></div>
+    <div class="field"><label>Intervalle</label><select id="period"><option value="6">6 mois</option><option value="12" selected>12 mois</option></select></div>
+    <div class="field gr"><label>Type (courbe CA synthèse)</label>
+      <div class="seg miss" id="missSeg"><button data-m="all" class="on" onclick="setMiss('all')">Tous</button><button data-m="rec" onclick="setMiss('rec')">Récurrent</button><button data-m="pon" onclick="setMiss('pon')">Ponctuel</button></div></div>
+    <div class="field"><label style="visibility:hidden">.</label>
+      <div id="expWrap" style="position:relative">
+        <div class="cmp exp" onclick="document.getElementById('expMenu').classList.toggle('show')">⬇ Exporter ▾</div>
+        <div id="expMenu" class="expmenu">
+          <button onclick="toXLSX()">📊 Excel (.xlsx) — un onglet par section</button>
+          <button onclick="toCSV()">📄 CSV — toutes les données à plat</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="scopeBar" style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--nav);background:#eef2fb;border:1px solid #d7deef;border-radius:8px;padding:8px 12px;margin:-4px 0 16px">🔒 <b>Périmètre :</b> <span id="scopeBanner"></span></div>
+  <div class="ptabs"><div class="ptab on" data-pt="stat" onclick="setPrimary('stat')">Statistiques commerciales</div>
+    <div class="ptab" data-pt="lab" onclick="setPrimary('lab')">Lutte anti-blanchiment</div></div>
+
+  <div class="stabs" id="stabsStat">
+    <div class="stab on" data-t="synthese">Synthèse</div>
+    <div class="stab" data-t="activite">Activité</div>
+    <div class="stab star" data-t="recpon">Récurrent / Ponctuel</div>
+    <div class="stab star" data-t="portefeuille">Portefeuille client</div>
+    <div class="stab" data-t="rentabilite">Rentabilité</div>
+    <div class="stab" data-t="pipeline">Pipeline</div>
+    <div class="stab" data-t="objectifs">Objectifs</div>
+    <div class="stab" data-t="sources">Sources</div>
+    <div class="stab" data-t="referentiel">Référentiel</div>
+  </div>
+  <div class="stabs" id="stabsLab" style="display:none">
+    <div class="stab on" data-t="lab_vig">Vigilance</div>
+    <div class="stab" data-t="lab_syn">Synthèses LAB</div>
+    <div class="stab" data-t="lab_mm">Maintiens de mission</div>
+    <div class="stab" data-t="lab_ape">Risques par APE</div>
+    <div class="stab" data-t="lab_av">Avancement LAB</div>
+    <div class="stab star" data-t="lab_carto">Cartographie</div>
+  </div>
+  <div id="labNote" style="display:none;align-items:center;gap:8px;font-size:12px;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;margin:10px 0 0">⚠️ <span><b>Périmètre LAB :</b> données cabinet (illustratives). La visibilité par collaborateur / site (ticket §3 : Process Lab, Maintien de mission, Mandat SEPA) sera appliquée quand l'export inclura le scoring LBC‑FT par dossier.</span></div>
+
+  <div id="panels">
+    <!-- SYNTHÈSE -->
+    <div class="panel on" data-p="synthese">
+      <div class="grid kpis" id="kpiGrid" style="margin-bottom:16px"></div>
+      <div class="grid" style="grid-template-columns:1.5fr 1fr">
+        <div class="card"><div class="top"><div class="title">CA signé · récurrent annualisé vs ponctuel · 12 mois</div></div>
+          <div class="body"><div style="height:240px"><canvas id="caChart"></canvas></div></div></div>
+        <div class="card"><div class="top"><div class="title">À traiter en priorité</div></div>
+          <div class="body">
+            <div class="note warn" style="margin-bottom:9px">⚠ <span><b>312 dossiers LAB</b> hors délai — <a style="color:var(--red);text-decoration:underline;cursor:pointer" onclick="openDrill('lab')">voir ▸</a></span></div>
+            <div class="note" style="margin-bottom:9px">⏰ <span><b>2 devis</b> en attente > 40 j sans relance — <a style="color:var(--blue);text-decoration:underline;cursor:pointer" onclick="openDrill('aging')">relancer ▸</a></span></div>
+            <div class="note">📉 <span>Transformation « Internet » à <b>52%</b>, sous le seuil d'alerte.</span></div>
+          </div></div>
+      </div>
+    </div>
+
+    <!-- ACTIVITÉ -->
+    <div class="panel" data-p="activite">
+      <div class="card"><div class="top"><div class="title">Devis & montant signé · 12 mois glissants</div><span class="hint" onclick="alert('Export Excel (prototype)')">⬇ Excel</span></div>
+        <div class="body"><div style="height:300px"><canvas id="devisChart"></canvas></div></div></div>
+    </div>
+
+    <!-- RÉCURRENT / PONCTUEL -->
+    <div class="panel" data-p="recpon">
+      <span class="impro">Vue clé pour un cabinet · l'activité de fond (ARR) vs l'opportuniste</span>
+      <div class="grid kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px" id="rpKpi"></div>
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div class="card"><div class="top"><div class="title">Mix du CA signé</div></div>
+          <div class="body"><div style="display:flex;justify-content:center" id="mixDonut"></div></div></div>
+        <div class="card"><div class="top"><div class="title">Périodicité des contrats signés</div></div>
+          <div class="body"><div id="arrBridge"></div>
+            <div class="note" style="margin-top:6px">💡 <span>ARR net = nouveaux contrats récurrents − missions perdues (churn). C'est l'équivalent du « MRR » d'un éditeur SaaS.</span></div></div></div>
+      </div>
+      <div class="card"><div class="top"><div class="title">Panier moyen comparé · récurrent vs ponctuel</div></div>
+        <div class="body"><div class="hbars" id="panierBars"></div>
+          <div class="note" style="margin-top:12px">💡 <span>Le ponctuel a un ticket plus gros mais sans lendemain ; le récurrent vaut bien plus sur la durée (LTV).</span></div></div></div>
+      <div class="card"><div class="top"><div class="title">CA annuel — réalisé (N‑1, N) &amp; prévisionnel (N+1)</div><span class="hint">tendance + objectif</span></div>
+        <div class="body"><div style="height:262px"><canvas id="forecastChart"></canvas></div>
+          <div class="note" style="margin-top:12px">📈 <span>Le prévisionnel 2024 (barres claires) = ARR reconduit (rétention 94 %) + nouveaux récurrents attendus + ponctuel à tendance. Le repère <b>Objectif</b> matérialise le « faire mieux » : +5 % au‑dessus de la tendance — l'écart à aller chercher.</span></div></div></div>
+    </div>
+
+    <!-- PORTEFEUILLE -->
+    <div class="panel" data-p="portefeuille">
+      <span class="impro">Nouvel onglet · valeur et concentration du portefeuille</span>
+      <div class="grid" style="grid-template-columns:1fr 1.4fr">
+        <div class="card"><div class="top"><div class="title">Répartition des clients</div></div>
+          <div class="body"><div style="display:flex;justify-content:center" id="clientDonut"></div>
+            <div class="note" style="margin-top:12px">💡 <span>40% de clients récurrents, mais ils portent <b>78% du CA</b> : c'est sur eux que repose le cabinet.</span></div></div></div>
+        <div class="card"><div class="top"><div class="title">Concentration du CA (Pareto)</div></div>
+          <div class="body"><div style="height:220px"><canvas id="paretoChart"></canvas></div></div></div>
+      </div>
+      <div class="card"><div class="top"><div class="title">Top clients par CA annuel confié</div></div>
+        <div class="body"><table class="tbl" id="topClients"></table></div></div>
+    </div>
+
+    <!-- RENTABILITÉ -->
+    <div class="panel" data-p="rentabilite">
+      <div class="note" style="margin:0 0 14px">⚠️ <span><b>Coûts indisponibles dans l'export</b> — marge illustrative, non recalculée par les filtres.</span></div>
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div class="card"><div class="top"><div class="title">Du CA signé à la marge brute · mai</div></div>
+          <div class="body"><div id="waterfall"></div>
+            <div style="text-align:center;font-size:11px;color:var(--faint);margin-top:2px">Chaque poste se déduit du précédent : le CA (30 k€) « descend » jusqu'à la marge (13 k€ · 43 %).</div></div></div>
+        <div class="card"><div class="top"><div class="title">Marge brute par prestation</div></div>
+          <div class="body"><div class="hbars" id="margeBars"></div>
+            <div class="note" style="margin-top:13px">⚠ <span>La <b>Paie</b> = 23% du volume mais sa marge (28%) est la plus faible : chronophage en heures collaborateur.</span></div></div></div>
+      </div>
+    </div>
+
+    <!-- PIPELINE -->
+    <div class="panel" data-p="pipeline">
+      <div class="grid" style="grid-template-columns:1fr 1.3fr">
+        <div class="card"><div class="top"><div class="title">Entonnoir de conversion</div></div>
+          <div class="body"><div class="funnel" id="funnel"></div></div></div>
+        <div class="card"><div class="top"><div class="title">Devis en attente — à relancer</div><span class="hint" onclick="openDrill('aging')">voir tout ▸</span></div>
+          <div class="body"><table class="tbl" id="agingTbl"></table>
+            <div class="stat2" style="margin-top:14px;gap:34px"><div class="s"><div class="big" style="color:var(--blue)" id="agStatN">170</div><div class="lab">devis envoyés non signés</div></div>
+              <div class="s"><div class="big" id="agStatCyc">20 j</div><div class="lab">cycle moyen (création→signature)</div></div></div></div></div>
+      </div>
+    </div>
+
+    <!-- OBJECTIFS -->
+    <div class="panel" data-p="objectifs">
+      <div class="seg miss" id="colDimSeg" style="margin-bottom:6px"><button data-d="sig" class="on" onclick="setColDim('sig')">Par signataire</button><button data-d="resp" onclick="setColDim('resp')">Par responsable</button></div>
+      <div class="note" style="margin:0 0 14px"><span id="objScope">Signataire · agrégé tous sites — 1 ligne par personne</span></div>
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div class="card"><div class="top"><div class="title">CA signé vs objectif</div></div><div class="body" id="bullets"></div></div>
+        <div class="card"><div class="top"><div class="title">Classement collaborateurs · 12 mois</div></div><div class="body"><table class="tbl" id="rankTbl"></table></div></div>
+      </div>
+      <div class="note" style="margin-top:14px">ℹ️ <span>Un collaborateur <b>responsable sur plusieurs sites</b> est agrégé sur <b>tous ses sites</b> (une seule ligne). Le filtre <b>Site</b> restreint l'affichage à un site ; l'objectif reste défini <b>par responsable</b> (ventilable par site). Ici l'export DÉMO ne comporte qu'un site, mais la logique est prête. À noter : <b>Responsable ≠ Signataire sur 89 devis / 381</b> — d'où l'écart entre les deux vues (ex. Louot : 2ᵉ en signataire, dernière en responsable).</span></div>
+    </div>
+
+    <!-- SOURCES -->
+    <div class="panel" data-p="sources">
+      <div class="card"><div class="top"><div class="title">Sources de prescription — volume & taux de transfo</div></div>
+        <div class="body"><div class="hbars" id="sourcesBars"></div>
+          <div class="note" style="margin-top:13px">⚠️ <span><b>40% des prospects sans origine renseignée</b> : le ROI par canal est aveugle sur près de la moitié du volume. Champ à fiabiliser (liste fermée + obligatoire).</span></div></div></div>
+    </div>
+
+    <!-- RÉFÉRENTIEL -->
+    <div class="panel" data-p="referentiel">
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div class="card"><div class="top"><div class="title">Honoraires récurrents par prestation</div><span class="hint">€/mois · hors ponctuel</span></div><div class="body"><div class="hbars" id="prestaBars"></div></div></div>
+        <div class="card"><div class="top"><div class="title">Formes juridiques</div><span class="hint">illustratif</span></div><div class="body"><div class="hbars" id="formesBars"></div></div></div>
+        <div class="card"><div class="top"><div class="title">Implantation des clients (ville)</div></div><div class="body"><div class="hbars" id="geoBars"></div></div></div>
+      </div>
+      <div class="card"><div class="top"><div class="title">Modèles de lettre de mission utilisés</div><span class="hint">nb de devis</span></div>
+        <div class="body"><div id="modelesBars"></div></div></div>
+    </div>
+
+    <!-- ===== LAB — intégration du projet Cartographie LBC-FT ===== -->
+    <div class="panel" data-p="lab_vig">
+      <div class="tab-section-title">Vigilance</div>
+      <div class="vig-wrap">
+        <div class="vig-chart-wrap">
+          <canvas id="vigChart" role="img" aria-label="Donut vigilance 61% renforcée">61% vigilance renforcée, 39% standard.</canvas>
+          <div class="vig-center"><div class="vig-pct">61%</div><div class="vig-label-sm">Vigilance<br>renforcée</div></div>
+        </div>
+        <div class="vig-list">
+          <div class="vig-item"><div class="vig-dot-wrap"><div class="vig-dot" style="background:#22c55e"></div> Standard</div><div class="vig-count">114</div></div>
+          <div class="vig-item"><div class="vig-dot-wrap"><div class="vig-dot" style="background:#e74c3c"></div> Renforcée</div><div class="vig-count">175</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel" data-p="lab_syn">
+      <div class="tab-section-title">Synthèse</div>
+      <div class="synth-kpis">
+        <div><div class="synth-kpi-label" style="color:#9ca3af">À faire</div><div class="synth-kpi-val">2233 <span style="font-size:13px;color:#9ca3af">(85%)</span></div></div>
+        <div><div class="synth-kpi-label" style="color:#f59e0b">En cours</div><div class="synth-kpi-val">95 <span style="font-size:13px;color:#f59e0b">(4%)</span></div></div>
+        <div><div class="synth-kpi-label" style="color:#f97316">À valider</div><div class="synth-kpi-val">3 <span style="font-size:13px;color:#f97316">(0%)</span></div></div>
+        <div><div class="synth-kpi-label" style="color:#22c55e">Validés</div><div class="synth-kpi-val">282 <span style="font-size:13px;color:#22c55e">(11%)</span></div></div>
+      </div>
+      <div class="synth-bar">
+        <div class="synth-bar-seg" style="width:85%;background:#d1d5db"></div>
+        <div class="synth-bar-seg" style="width:4%;background:#f59e0b"></div>
+        <div class="synth-bar-seg" style="width:0%;background:#f97316"></div>
+        <div class="synth-bar-seg" style="width:11%;background:#22c55e"></div>
+      </div>
+      <div class="synth-legend">
+        <div class="synth-leg-item"><div class="synth-leg-label"><div class="synth-leg-dot" style="background:#9ca3af"></div>À faire</div><div class="synth-leg-n">2233</div></div>
+        <div class="synth-leg-item"><div class="synth-leg-label"><div class="synth-leg-dot" style="background:#f59e0b"></div>En cours</div><div class="synth-leg-n">95</div></div>
+        <div class="synth-leg-item"><div class="synth-leg-label"><div class="synth-leg-dot" style="background:#f97316"></div>À valider</div><div class="synth-leg-n">3</div></div>
+        <div class="synth-leg-item"><div class="synth-leg-label"><div class="synth-leg-dot" style="background:#22c55e"></div>Validés</div><div class="synth-leg-n">282</div></div>
+      </div>
+    </div>
+    <div class="panel" data-p="lab_mm">
+      <div class="tab-section-title">Maintiens de mission LAB</div>
+      <div class="mm-grid">
+        <div class="mm-stat"><div class="mm-stat-n" style="color:#22c55e">62</div><div class="mm-stat-l">À jour</div></div>
+        <div class="mm-stat"><div class="mm-stat-n" style="color:#e74c3c">58</div><div class="mm-stat-l">En retard</div></div>
+        <div class="mm-stat"><div class="mm-stat-n" style="color:#3b82f6">31</div><div class="mm-stat-l">Validés</div></div>
+      </div>
+      <div class="mm-list">
+        <div class="mm-row"><div class="mm-name">NEOM EXPERTISE</div><div class="mm-date">30/09</div><span class="mm-badge" style="background:#dbeafe;color:#1d4ed8">À jour</span></div>
+        <div class="mm-row"><div class="mm-name">PLUS QUE PRO</div><div class="mm-date">30/09</div><span class="mm-badge" style="background:#dcfce7;color:#15803d">Validé</span></div>
+        <div class="mm-row"><div class="mm-name">EFFICIENCE EXPERTISE</div><div class="mm-date">31/12</div><span class="mm-badge" style="background:#fecaca;color:#b91c1c">En retard</span></div>
+        <div class="mm-row"><div class="mm-name">LBCE</div><div class="mm-date">30/09</div><span class="mm-badge" style="background:#dbeafe;color:#1d4ed8">À jour</span></div>
+        <div class="mm-row"><div class="mm-name">AXIOME CEVENNES</div><div class="mm-date">31/12</div><span class="mm-badge" style="background:#fecaca;color:#b91c1c">En retard</span></div>
+        <div class="mm-row"><div class="mm-name">ABANTZ</div><div class="mm-date">31/12</div><span class="mm-badge" style="background:#fecaca;color:#b91c1c">En retard</span></div>
+      </div>
+    </div>
+    <div class="panel" data-p="lab_ape">
+      <div class="tab-section-title">Vigilances par secteur d'activité</div>
+      <div style="font-size:12px;color:#555;margin-bottom:14px">TOP 10 – Secteurs à plus forte vigilance renforcée</div>
+      <div class="ape-cards">
+        <div class="ape-card selected"><div class="ape-rank">#1</div><div class="ape-name-main">N/A</div><div class="ape-code">47.26Z</div><div class="ape-footer"><div class="ape-nn">2 <span>/ 2 LAB</span></div><span class="ape-pct-badge">100%</span></div></div>
+        <div class="ape-card"><div class="ape-rank">#2</div><div class="ape-name-main">N/A</div><div class="ape-code">84.11Z</div><div class="ape-footer"><div class="ape-nn">2 <span>/ 2 LAB</span></div><span class="ape-pct-badge">100%</span></div></div>
+        <div class="ape-card"><div class="ape-rank">#3</div><div class="ape-name-main">N/A</div><div class="ape-code">10.71C</div><div class="ape-footer"><div class="ape-nn">2 <span>/ 2 LAB</span></div><span class="ape-pct-badge">100%</span></div></div>
+        <div class="ape-card"><div class="ape-rank">#4</div><div class="ape-name-main">N/A</div><div class="ape-code">47.42Z</div><div class="ape-footer"><div class="ape-nn">1 <span>/ 1 LAB</span></div><span class="ape-pct-badge">100%</span></div></div>
+        <div class="ape-card"><div class="ape-rank">#5</div><div class="ape-name-main">Trucages, effets spéciaux</div><div class="ape-code">59.12Z</div><div class="ape-footer"><div class="ape-nn">1 <span>/ 1 LAB</span></div><span class="ape-pct-badge">100%</span></div></div>
+        <div class="ape-card"><div class="ape-rank">#6</div><div class="ape-name-main">N/A</div><div class="ape-code">41.10D</div><div class="ape-footer"><div class="ape-nn">1 <span>/ 1 LAB</span></div><span class="ape-pct-badge">100%</span></div></div>
+      </div>
+      <div class="ape-second-row">
+        <div class="ape-card"><div class="ape-rank">#7</div><div class="ape-name-main">N/A</div><div class="ape-code">43.12A</div><div class="ape-footer"><div class="ape-nn">1 <span>/ 1 LAB</span></div><span class="ape-pct-badge">100%</span></div></div>
+        <div class="ape-card"><div class="ape-rank">#8</div><div class="ape-name-main">N/A</div><div class="ape-code">43.22B</div><div class="ape-footer"><div class="ape-nn">1 <span>/ 1 LAB</span></div><span class="ape-pct-badge">100%</span></div></div>
+        <div class="ape-card"><div class="ape-rank">#9</div><div class="ape-name-main">Restauration rapide</div><div class="ape-code">56.10C</div><div class="ape-footer"><div class="ape-nn">1 <span>/ 1 LAB</span></div><span class="ape-pct-badge">100%</span></div></div>
+        <div class="ape-card"><div class="ape-rank">#10</div><div class="ape-name-main">Maisons individuelles</div><div class="ape-code">43.99C</div><div class="ape-footer"><div class="ape-nn">1 <span>/ 1 LAB</span></div><span class="ape-pct-badge">100%</span></div></div>
+      </div>
+      <div class="ape-explorer">
+        <select><option>47.26Z – N/A (2 LAB)</option><option>84.11Z – N/A (2 LAB)</option><option>56.10C – Restauration rapide (1 LAB)</option></select>
+        <div class="ape-explorer-content">47.26Z – N/A (2 LAB)</div>
+      </div>
+    </div>
+    <div class="panel" data-p="lab_av">
+      <div class="tab-section-title">Avancement LAB — Portefeuille</div>
+      <div style="margin-bottom:18px">
+        <div class="av-bar-row"><div class="av-bar-label">Questionnaire LAB</div><div class="av-bar-track"><div class="av-bar-fill" style="width:78%;background:#22c55e"></div></div><div class="av-bar-pct" style="color:#22c55e">78%</div><div class="av-count">225 dos.</div></div>
+        <div class="av-bar-row"><div class="av-bar-label">Acceptation mission</div><div class="av-bar-track"><div class="av-bar-fill" style="width:71%;background:#22c55e"></div></div><div class="av-bar-pct" style="color:#22c55e">71%</div><div class="av-count">205 dos.</div></div>
+        <div class="av-bar-row"><div class="av-bar-label">Missions définies</div><div class="av-bar-track"><div class="av-bar-fill" style="width:65%;background:#f59e0b"></div></div><div class="av-bar-pct" style="color:#f59e0b">65%</div><div class="av-count">188 dos.</div></div>
+        <div class="av-bar-row"><div class="av-bar-label">Diligences complétées</div><div class="av-bar-track"><div class="av-bar-fill" style="width:52%;background:#f59e0b"></div></div><div class="av-bar-pct" style="color:#f59e0b">52%</div><div class="av-count">150 dos.</div></div>
+        <div class="av-bar-row"><div class="av-bar-label">Synthèse LAB validée</div><div class="av-bar-track"><div class="av-bar-fill" style="width:45%;background:#e74c3c"></div></div><div class="av-bar-pct" style="color:#e74c3c">45%</div><div class="av-count">130 dos.</div></div>
+        <div class="av-bar-row"><div class="av-bar-label">Déontologie 100%</div><div class="av-bar-track"><div class="av-bar-fill" style="width:38%;background:#e74c3c"></div></div><div class="av-bar-pct" style="color:#e74c3c">38%</div><div class="av-count">110 dos.</div></div>
+      </div>
+      <div style="font-size:11px;color:#aaa">636 prospects actifs · 289 dossiers LAB validés · Clôture 31/12/2025</div>
+    </div>
+    <div class="panel" data-p="lab_carto">
+      <div class="carto-header">
+        <div>
+          <div class="tab-section-title" style="margin-bottom:2px">Cartographie des risques LBC-FT</div>
+          <div style="font-size:11px;color:#888" id="carto-sub">Portefeuille global · 289 dossiers validés · Clôture 31/12/2025</div>
+        </div>
+        <div class="carto-filters">
+          <span class="carto-filter-label">Vue par signataire :</span>
+          <select class="sig-select" onchange="cartoDraw(this.value)">
+            <option value="global">Portefeuille global</option>
+            <option value="marot">J. Martin (100 dos.)</option>
+            <option value="klein">C. Dubois (85 dos.)</option>
+            <option value="chen">S. Moreau (62 dos.)</option>
+            <option value="dupont">A. Leroy (36 dos.)</option>
+          </select>
+          <button class="carto-export" onclick="window.print()">↓ Exporter PDF</button>
+        </div>
+      </div>
+      <div class="carto-kpis" id="c-kpis"></div>
+      <div class="carto-dim-strip" id="c-dims"></div>
+      <div class="carto-grid2">
+        <div class="carto-panel">
+          <div class="carto-panel-title">Score de risque — 5 dimensions</div>
+          <div style="position:relative;height:200px"><canvas id="cRadar" role="img" aria-label="Radar D1 à D5">Scores par dimension.</canvas></div>
+        </div>
+        <div class="carto-panel">
+          <div class="carto-panel-title">Répartition par signataire</div>
+          <div style="position:relative;height:200px"><canvas id="cBar" role="img" aria-label="Répartition vigilance par signataire">Répartition par signataire.</canvas></div>
+          <div style="display:flex;gap:12px;margin-top:8px;font-size:10px;color:#888">
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:#e74c3c;display:inline-block"></span>Renforcée</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:#4ade80;display:inline-block"></span>Standard</span>
+          </div>
+        </div>
+      </div>
+      <div class="carto-grid3">
+        <div class="carto-panel"><div class="carto-panel-title">Top secteurs à vigilance renforcée (code APE)</div><div id="c-ape"></div></div>
+        <div class="carto-panel"><div class="carto-panel-title">Opérations atypiques</div><div id="c-ope"></div></div>
+      </div>
+      <div class="sig-table-wrap">
+        <table class="sig-tbl">
+          <thead><tr><th>Signataire</th><th>Dossiers</th><th>Renforcée</th><th>Standard</th><th>Répartition</th><th>Niveau global</th></tr></thead>
+          <tbody id="c-sigs"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="bubble">💬</div>
+<div class="overlay" id="overlay" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal"><div class="mh"><h3 id="modalTitle"></h3><button onclick="document.getElementById('overlay').classList.remove('show')">✕</button></div><div class="mb" id="modalBody"></div></div>
+</div>
+
+<script>
+const C={nav:'#16277D',rec:'#1B53D6',pon:'#E0A23C',blue:'#1B53D6',blue2:'#4E84F0',blueLt:'#C2CBDD',green:'#2E9B63',amber:'#C77D11',red:'#C0392B',info:'#2E5C88',ink:'#2A2F3A',muted:'#737A86'};
+const M=['06/25','07/25','08/25','09/25','10/25','11/25','12/25','01/26','02/26','03/26','04/26','05/26','06/26'];
+let caRec=[9.6,25.7,10.5,27.8,71.9,77.3,21.2,21.9,23.6,46.5,42.0,37.1,19.9], caPon=[1.9,4.9,5.7,2.6,3.7,9.0,1.4,2.2,4.5,4.7,3.0,9.8,1.2];
+const ca22=[];
+let nbAll=[4,13,12,16,24,27,11,8,9,17,19,15,8];
+let showCmp=false, period=12, miss='all';
+const ROWS=[["BÂTIMENT AUBERT SCI","LEROY Antoine","LEROY Antoine",0,0,"m",1880,260,228,0,32,0,0,"COMPTA BIC - 2025","Apporteur 38","Paris",-1,-1,"Lyon"],["INFORMATIQUE AUBERT","LEROY Antoine","LEROY Antoine",0,0,"m",320,157,100,0,22,35,0,"SCI IS","Gud","Pichanges",-1,-1,"Dijon"],["FERME VINCENT SASU","MARTIN Julien","MARTIN Julien",0,1,"m",150,515,433,55,27,0,0,"COMPTA BIC - 2026","(Non renseigné)","Beaune",-1,8,"Dijon"],["DOMAINE MEUNIER SARL","MARTIN Julien","MARTIN Julien",1,2,"a",0,120,0,0,0,120,0,"ASSISTANCE IRPP","(Non renseigné)","Chenôve",12,0,"Lyon"],["FERME ROCHE SASU","MARTIN Julien","MARTIN Julien",1,2,"a",0,120,0,0,0,120,0,"ASSISTANCE IRPP","(Non renseigné)","Saint-Florentin",12,0,"Dijon"],["INFORMATIQUE LEFEVRE SAS","MARTIN Julien","MARTIN Julien",0,1,"m",485,71,71,0,0,0,0,"LOUEUR MEUBLE IR","(Non renseigné)","Fontaine-Lès-Dijon",-1,8,"Dijon"],["NÉGOCE BLANC","MARTIN Julien","MARTIN Julien",0,1,"a",0,200,0,0,0,200,0,"ASSISTANCE IRPP","(Non renseigné)","Dijon",-1,9,"Lyon"],["FLEURISTE MARCHAND EURL","MARTIN Julien","MARTIN Julien",0,1,"a",0,120,0,0,0,120,0,"ASSISTANCE IRPP","(Non renseigné)","Dijon",-1,9,"Dijon"],["GROUPE COLIN EURL","MARTIN Julien","MARTIN Julien",1,2,"a",0,120,0,0,0,120,0,"ASSISTANCE IRPP","(Non renseigné)","Fontaine Les Dijon",12,0,"Dijon"],["ÉLECTRICITÉ ROBIN SARL","MARTIN Julien","MARTIN Julien",1,2,"a",0,200,0,0,0,200,0,"ASSISTANCE IRPP","(Non renseigné)","Urcy",12,0,"Lyon"],["LIBRAIRIE FAURE","MARTIN Julien","MOREAU Sophie",1,2,"p",0,800,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Site","Chagny",12,1,"Dijon"],["COIFFURE GARNIER SAS","MARTIN Julien","MARTIN Julien",0,1,"a",0,200,0,0,0,200,0,"ASSISTANCE IRPP","(Non renseigné)","Bar Sur Aube",-1,10,"Dijon"],["FLEURISTE ROUSSEAU SASU","MARTIN Julien","MARTIN Julien",0,1,"a",0,200,0,0,0,200,0,"ASSISTANCE IRPP","(Non renseigné)","Dolancourt",-1,10,"Lyon"],["DISTRIBUTION PERROT SASU","MARTIN Julien","MARTIN Julien",1,2,"m",0,81,36,0,0,37,0,"COMPTA BNC - 2026","(Non renseigné)","Saint Apollinaire",12,25,"Dijon"],["PHARMACIE LEFEVRE","DUBOIS Camille","MOREAU Sophie",1,2,"p",400,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur 51","Dijon",12,3,"Dijon"],["ÉPICERIE CHEVALIER","MARTIN Julien","MARTIN Julien",0,1,"m",0,117,71,0,0,74,0,"COMPTA BNC - 2026","(Non renseigné)","Fenay",-1,14,"Lyon"],["IMMOBILIER ROUSSEL EURL","MARTIN Julien","MARTIN Julien",0,1,"m",0,62,62,0,0,0,0,"LOUEUR MEUBLE IR","Apporteur 28","Nice",-1,14,"Dijon"],["INFORMATIQUE MEYER SARL 95","MARTIN Julien","MARTIN Julien",1,2,"m",0,183,110,0,0,46,0,"COMPTA BNC - 2026","(Non renseigné)","Chenove",11,0,"Dijon"],["MAISON RIVIERE SARL","LEROY Antoine","MARTIN Julien",0,1,"m",0,208,208,0,0,0,0,"COMPTA BIC - 2026","(Non renseigné)","Dijon",-1,20,"Lyon"],["ATELIER DENIS SCI","LEROY Antoine","MARTIN Julien",0,1,"m",0,98,98,0,0,0,0,"COMPTA BIC - 2026","Apporteur 48","Dijon",-1,19,"Dijon"],["ATELIER DUMONT SAS","MARTIN Julien","MARTIN Julien",1,2,"m",800,220,188,0,32,0,0,"COMPTA BIC - 2026","Bge","Gerland",12,19,"Dijon"],["DESIGN MEYER","MARTIN Julien","MARTIN Julien",0,1,"m",369,28,0,28,0,0,0,"Social - paies et charges","(Non renseigné)","Longchamp",-1,20,"Lyon"],["ÉPICERIE CHARPENTIER SAS","MARTIN Julien","MARTIN Julien",0,1,"m",0,79,92,0,0,128,0,"COMPTA BNC - 2026","(Non renseigné)","Dijon",-1,21,"Dijon"],["LIBRAIRIE MULLER SASU","MARTIN Julien","MARTIN Julien",0,1,"m",0,79,92,0,0,128,0,"COMPTA BNC - 2026","(Non renseigné)","Dijon",-1,21,"Dijon"],["DOMAINE GIRARD","LEROY Antoine","LEROY Antoine",1,2,"m",0,54,54,0,0,0,0,"LOUEUR MEUBLE IR","(Non renseigné)","Vignoles",11,2,"Lyon"],["ATELIER DUMONT SAS","MARTIN Julien","MARTIN Julien",1,2,"m",1150,116,20,28,0,42,0,"COMPTA BNC - 2026","Apporteur 43","Marsannay-La-Côte",11,88,"Dijon"],["ATELIER DUMONT SAS","MARTIN Julien","MARTIN Julien",1,2,"m",750,82,25,0,22,35,0,"SCI IS","Apporteur 43","Marsannay-La-Côte",11,88,"Dijon"],["IMMOBILIER ANTOINE SASU","MARTIN Julien","MARTIN Julien",1,2,"m",1100,175,230,0,32,0,0,"COMPTA BIC - 2026","(Non renseigné)","Parcey",11,1,"Lyon"],["PEINTURE LEFEVRE EURL","MARTIN Julien","MARTIN Julien",1,2,"m",249,55,0,55,0,0,0,"Social - paies et charges","(Non renseigné)","Bretigny",11,1,"Dijon"],["TRAITEUR BLANC SCI","MARTIN Julien","MARTIN Julien",1,2,"m",0,311,284,0,27,0,0,"COMPTA BIC - 2026","Site","Dijon",11,0,"Dijon"],["TRAITEUR ANTOINE SAS","MARTIN Julien","MARTIN Julien",0,1,"m",0,109,86,0,0,64,0,"COMPTA BNC - 2026","Client","Talant",-1,28,"Lyon"],["LOGISTIQUE PERRIN SASU","MOREAU Sophie","MOREAU Sophie",1,2,"p",3900,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Plombières-Lès-Dijon",11,1,"Dijon"],["ÉPICERIE GAUTHIER SCI","MARTIN Julien","MARTIN Julien",1,2,"m",1430,215,188,0,27,0,0,"COMPTA BIC - 2025","Site","Talant",11,6,"Dijon"],["TRAITEUR BLANC SCI","MARTIN Julien","MOREAU Sophie",1,2,"p",400,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Site","Dijon",11,4,"Lyon"],["SERVICES GIRARD SCI","LEROY Antoine","LEROY Antoine",0,0,"m",150,133,133,0,0,0,0,"COMPTA BIC - 2026","Apporteur 34","Saint-Sauveur-En-Puisaye",-1,-1,"Dijon"],["COIFFURE ANTOINE","MARTIN Julien","MARTIN Julien",1,2,"m",0,1024,987,0,37,0,0,"COMPTA BIC - 2026","(Non renseigné)","Dijon",11,7,"Dijon"],["OPTIQUE FABRE","MARTIN Julien","MOREAU Sophie",0,1,"p",2200,2800,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Brazey-En-Plaine",-1,44,"Lyon"],["OPTIQUE FABRE","MARTIN Julien","MARTIN Julien",0,1,"m",0,113,76,0,37,0,0,"COMPTA BIC - 2026","(Non renseigné)","Brazey-En-Plaine",-1,47,"Dijon"],["OPTIQUE FABRE","MARTIN Julien","MARTIN Julien",0,1,"m",150,134,102,0,32,0,0,"COMPTA BIC - 2026","(Non renseigné)","Brazey-En-Plaine",-1,47,"Dijon"],["OPTIQUE FABRE","MARTIN Julien","MARTIN Julien",0,1,"m",0,82,25,0,22,35,0,"SCI IS","(Non renseigné)","Brazey-En-Plaine",-1,47,"Lyon"],["ATELIER FABRE SARL","DUBOIS Camille","MOREAU Sophie",0,1,"p",1200,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur F","Brazey-En-Plaine",-1,47,"Dijon"],["PEINTURE RIVIERE SARL","MARTIN Julien","MARTIN Julien",1,2,"m",449,28,0,28,0,0,0,"Social - paies et charges","(Non renseigné)","Venarey-Les-Laumes",10,0,"Dijon"],["GROUPE LECLERC EURL","MARTIN Julien","MARTIN Julien",1,2,"m",150,227,195,0,32,0,0,"COMPTA BIC - 2026","(Non renseigné)","Pouilly-En-Auxois",10,2,"Lyon"],["PEINTURE RIVIERE SARL","MARTIN Julien","MARTIN Julien",1,2,"m",599,289,229,28,32,0,0,"COMPTA BIC - 2026","(Non renseigné)","Venarey-Les-Laumes",10,2,"Dijon"],["BÂTIMENT CLEMENT SCI","MARTIN Julien","MARTIN Julien",1,2,"m",0,108,76,0,32,0,0,"COMPTA BIC - 2026","(Non renseigné)","Messigny-Et-Vantoux",10,2,"Dijon"],["INFORMATIQUE BLANC SARL","MARTIN Julien","MARTIN Julien",1,2,"m",0,750,691,28,32,0,0,"COMPTA BIC - 2026","(Non renseigné)","Fenay",10,1,"Lyon"],["FLEURISTE LEMAIRE SARL","MARTIN Julien","MARTIN Julien",0,1,"m",799,279,252,28,0,0,0,"COMPTA BIC - 2026","(Non renseigné)","Soisy-Sur-Seine",-1,51,"Dijon"],["MAISON PERRIN SARL","DUBOIS Camille","MARTIN Julien",0,0,"m",0,86,86,0,0,0,0,"COMPTA BIC - 2026","Bge","Dijon",-1,-1,"Dijon"],["CLINIQUE GAUTHIER","DUBOIS Camille","MOREAU Sophie",1,2,"p",450,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Site","Savigny Le Sec",10,0,"Lyon"],["PEINTURE LEFEVRE EURL","MARTIN Julien","MARTIN Julien",1,2,"m",379,322,240,55,27,0,0,"COMPTA BIC - 2025","(Non renseigné)","Bretigny",11,160,"Dijon"],["ATELIER BOURGEOIS SAS","MARTIN Julien","MARTIN Julien",1,2,"m",430,107,25,0,22,60,0,"SCI IS","(Non renseigné)","Bretigny",11,160,"Dijon"],["PHARMACIE VINCENT","LEROY Antoine","MOREAU Sophie",1,2,"p",150,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur 37","Nanteuil",10,2,"Lyon"],["LIBRAIRIE ROUSSEL SASU","MARTIN Julien","MARTIN Julien",1,2,"m",0,75,38,0,0,37,0,"COMPTA BNC - 2026","(Non renseigné)","Chaignay",10,2,"Dijon"],["DOMAINE BOYER SASU","LEROY Antoine","MARTIN Julien",1,2,"p",0,800,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur O","Noiron-Sous-Gevrey",10,12,"Dijon"],["GROUPE RIVIERE","MARTIN Julien","MARTIN Julien",1,2,"m",0,75,38,0,0,37,0,"COMPTA BNC - 2026","(Non renseigné)","Fauverney",10,0,"Lyon"],["TRAITEUR FAURE EURL","MARTIN Julien","MARTIN Julien",0,1,"m",150,96,42,0,0,42,0,"COMPTA BNC - 2026","(Non renseigné)","Dijon",-1,68,"Dijon"],["COIFFURE DUMONT SASU","LEROY Antoine","MARTIN Julien",1,2,"m",0,46,21,0,0,25,0,"SCI IR","Gud","Savigny-Le-Sec",10,2,"Dijon"],["FLEURISTE MATHIEU SARL","LEROY Antoine","MARTIN Julien",1,2,"m",0,46,21,0,0,25,0,"SCI IR","Gud","Savigny-Le-Sec",10,2,"Lyon"],["FLEURISTE DURAND EURL","LEROY Antoine","MARTIN Julien",1,2,"m",0,83,46,0,37,0,0,"COMPTA BIC","Gud","Savigny-Le-Sec",10,2,"Dijon"],["RESTAURANT GAUTHIER SARL","LEROY Antoine","MARTIN Julien",1,2,"m",0,140,108,0,32,0,0,"COMPTA BIC","Apporteur M","Bretigny",10,2,"Dijon"],["CONSEIL BARRE SAS","LEROY Antoine","MARTIN Julien",1,2,"m",0,140,108,0,32,0,0,"COMPTA BIC","Apporteur M","Sennecey-Lès-Dijon",10,2,"Lyon"],["CHARPENTE LEFEVRE SAS","LEROY Antoine","MARTIN Julien",1,2,"m",0,140,108,0,32,0,0,"COMPTA BIC","Gud","Savigny-Le-Sec",10,2,"Dijon"],["CHARPENTE VINCENT SARL","MARTIN Julien","MARTIN Julien",0,1,"m",0,104,55,0,0,49,0,"COMPTA BNC - 2026","(Non renseigné)","Precy-Sous-Thil",-1,72,"Dijon"],["OPTIQUE GUERIN EURL","DUBOIS Camille","DUBOIS Camille",0,1,"m",450,169,71,0,0,85,0,"COMPTA BNC - 2026","Apporteur 40","Dijon",-1,78,"Lyon"],["BOULANGERIE BOURGEOIS SARL","LEROY Antoine","DUBOIS Camille",0,1,"m",0,242,200,0,32,0,10,"COMPTA BIC - 2026","(Non renseigné)","Dijon",-1,75,"Dijon"],["BOULANGERIE BOURGEOIS SARL","LEROY Antoine","DUBOIS Camille",0,0,"m",0,0,0,0,0,0,0,"COMPTA BIC - 2026","(Non renseigné)","Dijon",-1,-1,"Dijon"],["NÉGOCE MARCHAND SARL","MARTIN Julien","MOREAU Sophie",1,2,"p",1200,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Dijon",9,20,"Lyon"],["DOMAINE ROUSSEAU EURL 233","DUBOIS Camille","DUBOIS Camille",0,1,"m",0,490,490,0,0,0,0,"COMPTA BIC - 2026","(Non renseigné)","Lingolsheim",-1,77,"Dijon"],["LOGISTIQUE NOEL","MARTIN Julien","MARTIN Julien",1,2,"m",0,137,55,0,0,66,0,"COMPTA BNC - 2026","(Non renseigné)","St Apollinaire",9,0,"Dijon"],["BÂTIMENT CLEMENT","LEROY Antoine","LEROY Antoine",1,2,"m",75,159,159,0,0,0,0,"COMPTA BIC - 2026","Apporteur Z","Dijon",10,8,"Lyon"],["DOMAINE CHARPENTIER SCI","LEROY Antoine","LEROY Antoine",1,2,"m",250,59,59,0,0,0,0,"COMPTA BIC - 2026","Apporteur U","Bordeaux",9,29,"Dijon"],["RESTAURANT ANTOINE SAS","DUBOIS Camille","DUBOIS Camille",1,2,"m",0,119,119,0,0,0,0,"COMPTA BIC - 2026","Bge","Dijon",11,66,"Dijon"],["CLINIQUE GAUTHIER","DUBOIS Camille","DUBOIS Camille",1,2,"m",0,272,240,0,32,0,0,"COMPTA BIC - 2026","Site","Savigny Le Sec",9,9,"Lyon"],["OPTIQUE DURAND SASU","DUBOIS Camille","MOREAU Sophie",1,2,"p",450,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Internet","Dijon",9,3,"Dijon"],["TRAITEUR FABRE SCI","DUBOIS Camille","MOREAU Sophie",1,2,"p",400,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Internet","Dijon",9,3,"Dijon"],["PLOMBERIE CHEVALIER","DUBOIS Camille","MOREAU Sophie",0,1,"p",1050,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur L","Arceau",-1,83,"Lyon"],["TRAITEUR FABRE SCI","DUBOIS Camille","DUBOIS Camille",1,2,"m",0,329,297,0,32,0,0,"COMPTA BIC - 2026","Internet","Dijon",11,53,"Dijon"],["GROUPE CHARPENTIER","MARTIN Julien","MARTIN Julien",0,1,"m",950,198,171,0,27,0,0,"COMPTA BIC - 2026","(Non renseigné)","Gerland",-1,83,"Dijon"],["GROUPE CHARPENTIER","MARTIN Julien","MARTIN Julien",0,1,"m",1200,118,82,0,37,0,0,"COMPTA BIC - 2026","(Non renseigné)","Gerland",-1,83,"Lyon"],["GROUPE ROUSSEL SARL","MARTIN Julien","MOREAU Sophie",1,2,"p",0,300,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Bge","Gerland",9,1,"Dijon"],["BOUCHERIE ROUSSEL SARL","DUBOIS Camille","DUBOIS Camille",1,2,"m",0,229,192,0,27,0,10,"COMPTA BIC - 2026","Bge","Percey Le Grand",10,16,"Dijon"],["MAISON CHEVALIER SAS","MARTIN Julien","MARTIN Julien",1,2,"m",0,57,85,0,0,0,0,"LOUEUR MEUBLE IR","(Non renseigné)","Dijon",9,1,"Lyon"],["STUDIO FABRE SARL","DUBOIS Camille","DUBOIS Camille",0,1,"m",249,82,0,82,0,0,0,"Social - paies et charges","Apporteur 50","-",-1,351,"Dijon"],["STUDIO FABRE SARL","DUBOIS Camille","DUBOIS Camille",1,2,"m",1430,348,321,0,27,0,0,"COMPTA BIC - 2026","Apporteur 50","-",9,2,"Dijon"],["PHARMACIE LEFEVRE","DUBOIS Camille","MOREAU Sophie",1,2,"p",400,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur 51","Dijon",9,6,"Lyon"],["NÉGOCE GUERIN EURL","MARTIN Julien","MARTIN Julien",0,1,"a",0,300,0,0,0,300,0,"ASSISTANCE IRPP","(Non renseigné)","Sarrebourg",-1,93,"Dijon"],["NÉGOCE GUERIN EURL","MARTIN Julien","MARTIN Julien",0,1,"m",150,104,52,0,0,53,0,"COMPTA BNC - 2026","(Non renseigné)","Sarrebourg",-1,93,"Dijon"],["OPTIQUE GUERIN EURL","DUBOIS Camille","DUBOIS Camille",1,2,"m",450,169,71,0,0,85,0,"COMPTA BNC - 2026","Apporteur 40","Dijon",9,3,"Lyon"],["CHARPENTE MULLER SCI","MOREAU Sophie","DUBOIS Camille",1,2,"a",0,100,0,0,0,100,0,"ASSISTANCE IRPP","(Non renseigné)","Dijon",9,3,"Dijon"],["CARROSSERIE DURAND","MARTIN Julien","MARTIN Julien",0,1,"p",800,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Dijon",-1,96,"Dijon"],["CARROSSERIE DURAND","MARTIN Julien","MARTIN Julien",0,1,"m",1000,76,52,0,24,0,0,"COMPTA BIC - 2026","(Non renseigné)","Dijon",-1,96,"Lyon"],["BOUCHERIE PERRIN","MARTIN Julien","MARTIN Julien",1,2,"m",0,122,60,0,0,50,0,"COMPTA BNC - 2025","Client","Vieilmoulin",9,0,"Dijon"],["PEINTURE ROUSSEL","DUBOIS Camille","DUBOIS Camille",1,2,"m",0,262,220,0,32,0,10,"COMPTA BIC - 2026","Apporteur P","Dijon",9,4,"Dijon"],["GROUPE DURAND EURL","MARTIN Julien","MOREAU Sophie",0,1,"p",0,800,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur 37","Bretigny",-1,104,"Lyon"],["ÉLECTRICITÉ MOREL SARL","DUBOIS Camille","DUBOIS Camille",1,2,"m",0,284,242,0,32,0,10,"COMPTA BIC - 2026","Apporteur 42","Dijon",9,9,"Dijon"],["DESIGN GAUTHIER SCI","LEROY Antoine","LEROY Antoine",0,0,"m",250,59,59,0,0,0,0,"COMPTA BIC - 2026","Apporteur U","Rueil-Malmaison",-1,-1,"Dijon"],["DOMAINE BONNET SAS","LEROY Antoine","LEROY Antoine",1,2,"p",0,1500,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur X","Tannerre-En-Puisaye",9,22,"Lyon"],["ATELIER DUMONT SAS","MARTIN Julien","MARTIN Julien",0,1,"m",0,73,24,0,0,38,0,"COMPTA BNC - 2026","Apporteur 43","Marsannay-La-Côte",-1,110,"Dijon"],["SERVICES CHARPENTIER SCI","DUBOIS Camille","DUBOIS Camille",0,0,"m",0,74,0,0,22,52,0,"SCI IR","Apporteur 55","Dijon",-1,-1,"Dijon"],["DESIGN MEYER","MARTIN Julien","MARTIN Julien",1,2,"m",150,226,194,0,32,0,0,"COMPTA BIC - 2026","(Non renseigné)","Longchamp",8,10,"Lyon"],["ÉLECTRICITÉ DENIS SARL","MARTIN Julien","MARTIN Julien",1,2,"m",0,251,251,0,0,0,0,"COMPTA BIC - 2026","(Non renseigné)","Dijon",8,0,"Dijon"],["MAISON ROCHE SASU","MARTIN Julien","MARTIN Julien",0,1,"p",500,0,0,0,0,0,0,"STARTUP","(Non renseigné)","Paray-Le-Monial",-1,117,"Dijon"],["CLINIQUE GAILLARD SASU","DUBOIS Camille","DUBOIS Camille",0,1,"m",0,140,112,0,27,0,0,"COMPTA BIC - 2026","Bge","Fleurey Sur Ouche",-1,118,"Lyon"],["CLINIQUE FABRE SAS","DUBOIS Camille","DUBOIS Camille",1,2,"m",1530,224,192,0,32,0,0,"COMPTA BIC - 2026","Bge","Dijon",8,1,"Dijon"],["IMMOBILIER ANTOINE","MARTIN Julien","MARTIN Julien",0,1,"p",0,200,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Dijon",-1,119,"Dijon"],["IMMOBILIER ANTOINE","MARTIN Julien","MARTIN Julien",0,1,"p",0,500,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Dijon",-1,119,"Lyon"],["GROUPE HENRY SCI","DUBOIS Camille","DUBOIS Camille",0,1,"m",0,109,25,0,22,62,0,"SCI IS","(Non renseigné)","Chenove",-1,120,"Dijon"],["ÉLECTRICITÉ RENARD SASU","MARTIN Julien","MARTIN Julien",1,2,"m",150,266,238,0,27,0,0,"COMPTA BIC - 2026","(Non renseigné)","Plombieres-Les-Dijon",9,47,"Dijon"],["INFORMATIQUE CHEVALIER SASU","DUBOIS Camille","DUBOIS Camille",0,1,"m",0,148,116,0,32,0,0,"COMPTA BIC - 2026","Internet","Dijon",-1,125,"Lyon"],["TRANSPORTS CHEVALIER SARL","DUBOIS Camille","DUBOIS Camille",1,2,"m",0,229,229,0,0,0,0,"COMPTA BIC - 2026","Apporteur J","Fontaine Les Dijon",8,9,"Dijon"],["ÉLECTRICITÉ GUERIN SCI","MARTIN Julien","MARTIN Julien",1,2,"m",1700,363,244,82,37,0,0,"COMPTA BIC - 2025","(Non renseigné)","Dijon",8,0,"Dijon"],["TRAITEUR FAURE SASU","MARTIN Julien","MARTIN Julien",1,2,"m",650,232,232,0,0,0,0,"COMPTA BIC - 2026","(Non renseigné)","Bue",8,0,"Lyon"],["ATELIER FABRE SARL","DUBOIS Camille","MOREAU Sophie",0,1,"p",400,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur F","Brazey-En-Plaine",-1,127,"Dijon"],["NÉGOCE MARCHAND SARL","MARTIN Julien","MARTIN Julien",1,2,"m",0,238,209,0,29,0,0,"COMPTA BIC - 2026","(Non renseigné)","Dijon",8,46,"Dijon"],["NÉGOCE MARCHAND SCI","LEROY Antoine","LEROY Antoine",1,2,"m",0,542,542,0,0,0,0,"COMPTA BIC","Site","Longvic",7,1,"Lyon"],["CABINET FONTAINE SCI","LEROY Antoine","LEROY Antoine",1,2,"m",500,61,18,0,0,43,0,"SCI IS","Apporteur 35","Dijon",8,7,"Dijon"],["SERVICES FONTAINE SCI","LEROY Antoine","MARTIN Julien",1,2,"m",0,80,0,0,0,0,0,"MICROENTREPRISE - 2026","Apporteur B","Longchamp",7,0,"Dijon"],["CARROSSERIE GARNIER","LEROY Antoine","LEROY Antoine",0,0,"m",0,84,62,0,22,0,0,"COMPTA BIC - 2025","Gud","Dijon",-1,-1,"Lyon"],["LIBRAIRIE BONNET SARL","MARTIN Julien","MARTIN Julien",0,1,"m",0,666,422,137,32,0,75,"COMPTA BIC - 2026","(Non renseigné)","Izier",-1,135,"Dijon"],["LIBRAIRIE BONNET SARL","MARTIN Julien","MARTIN Julien",0,1,"m",899,266,211,55,0,0,0,"COMPTA BIC - 2026","(Non renseigné)","Izier",-1,135,"Dijon"],["OPTIQUE PERRIN SAS","LEROY Antoine","LEROY Antoine",0,1,"p",1200,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Gud","Dijon",-1,138,"Lyon"],["ATELIER DUMONT SAS","MARTIN Julien","MARTIN Julien",1,2,"m",1450,274,247,0,27,0,0,"COMPTA BIC - 2026","(Non renseigné)","Dijon",7,0,"Dijon"],["ATELIER DUMONT SAS","MARTIN Julien","MARTIN Julien",0,1,"m",1450,517,380,110,27,0,0,"COMPTA BIC - 2026","(Non renseigné)","Dijon",-1,147,"Dijon"],["BOULANGERIE DUMONT SARL","LEROY Antoine","LEROY Antoine",1,2,"m",130,114,114,0,0,0,0,"COMPTA BIC","Apporteur R","Dijon",7,3,"Lyon"],["NÉGOCE MARCHAND EURL","MARTIN Julien","MARTIN Julien",1,2,"m",130,76,0,0,0,0,0,"MICROENTREPRISE - 2026","Client","Dijon",7,161,"Dijon"],["MENUISERIE FAURE SCI","MARTIN Julien","MARTIN Julien",1,2,"m",0,36,36,0,0,0,0,"COMPTA BNC","(Non renseigné)","Vitteaux",7,0,"Dijon"],["CHARPENTE MULLER SCI","MOREAU Sophie","MOREAU Sophie",0,1,"p",0,150,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Dijon",-1,155,"Lyon"],["MENUISERIE FABRE SCI","MOREAU Sophie","MOREAU Sophie",1,2,"p",0,650,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Dijon",7,9,"Dijon"],["PEINTURE ROUSSEL","DUBOIS Camille","MOREAU Sophie",0,1,"p",150,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur P","Dijon",-1,163,"Dijon"],["BOULANGERIE DENIS SCI","DUBOIS Camille","MOREAU Sophie",0,1,"p",150,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur D","Thorey-Sous-Charny",-1,163,"Lyon"],["ÉPICERIE BOURGEOIS EURL","DUBOIS Camille","DUBOIS Camille",1,2,"m",0,158,126,0,32,0,0,"COMPTA BIC - 2025","Apporteur 29","Genlis",6,1,"Dijon"],["ATELIER DUMONT SAS","MARTIN Julien","Devizen support",0,0,"m",1650,83,57,0,26,0,0,"COMPTA BIC - 2026","(Non renseigné)","Dijon",-1,-1,"Dijon"],["ATELIER DUMONT SAS","MARTIN Julien","MARTIN Julien",0,1,"m",1650,83,106,0,48,0,0,"COMPTA BIC - 2026","(Non renseigné)","Dijon",-1,174,"Lyon"],["ATELIER DUMONT SAS","MARTIN Julien","MARTIN Julien",0,1,"m",950,164,137,0,27,0,0,"COMPTA BIC - 2026","(Non renseigné)","Dijon",-1,174,"Dijon"],["TRANSPORTS ROBIN SAS","MARTIN Julien","MARTIN Julien",1,2,"m",130,100,0,0,0,0,0,"MICROENTREPRISE - 2026","(Non renseigné)","Courlon",6,0,"Dijon"],["NÉGOCE GARNIER SAS","LEROY Antoine","DUBOIS Camille",0,1,"m",249,28,0,28,0,0,0,"Social - paies et charges","Site","Labergement-Foigney",-1,175,"Lyon"],["NÉGOCE GARNIER SAS","LEROY Antoine","DUBOIS Camille",0,1,"p",150,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Site","Labergement-Foigney",-1,175,"Dijon"],["RESTAURANT PERROT SARL","LEROY Antoine","MOREAU Sophie",1,2,"p",0,150,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Dijon",6,6,"Dijon"],["BÂTIMENT AUBERT SCI","LEROY Antoine","MOREAU Sophie",0,1,"p",0,750,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur 38","Paris",-1,184,"Lyon"],["ATELIER BERTRAND SAS","MARTIN Julien","MOREAU Sophie",1,2,"p",0,600,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Client","Dijon",6,2,"Dijon"],["DISTRIBUTION LECLERC","MARTIN Julien","DUBOIS Camille",1,2,"m",249,82,0,82,0,0,0,"Social - paies et charges","Thc","Dijon",6,0,"Dijon"],["OPTIQUE ROBIN SARL","MARTIN Julien","MARTIN Julien",1,2,"m",130,100,40,0,0,46,0,"COMPTA BNC - 2025","(Non renseigné)","Dijon",6,0,"Lyon"],["ATELIER DUMONT SAS","MARTIN Julien","MARTIN Julien",1,2,"m",1130,166,134,0,32,0,0,"COMPTA BIC - 2025","Bge","Chaignay",10,128,"Dijon"],["FLEURISTE AUBERT","DUBOIS Camille","MOREAU Sophie",0,0,"p",0,800,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Site","Dijon",-1,-1,"Dijon"],["CLINIQUE GAILLARD SASU","DUBOIS Camille","MOREAU Sophie",0,1,"p",0,800,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Bge","Fleurey Sur Ouche",-1,187,"Lyon"],["DISTRIBUTION MOREL","MARTIN Julien","MARTIN Julien",1,2,"m",130,141,35,0,0,94,0,"COMPTA BNC - 2025","(Non renseigné)","Dijon",6,73,"Dijon"],["NÉGOCE VINCENT","LEROY Antoine","LEROY Antoine",0,0,"p",250,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Gud","Paris 17",-1,-1,"Dijon"],["BOULANGERIE BOURGEOIS SAS","DUBOIS Camille","DUBOIS Camille",0,1,"m",930,226,199,0,27,0,0,"COMPTA BIC - 2025","Apporteur I","Dijon",-1,194,"Lyon"],["NÉGOCE BLANC","MARTIN Julien","MARTIN Julien",1,2,"m",430,110,45,0,0,53,0,"COMPTA BNC - 2025","(Non renseigné)","Chenove",5,1,"Dijon"],["ÉLECTRICITÉ LOUIS SASU","DUBOIS Camille","DUBOIS Camille",0,1,"m",130,200,174,0,27,0,0,"COMPTA BIC - 2025","Apporteur 49","Fauverney",-1,196,"Dijon"],["LOGISTIQUE DURAND","MARTIN Julien","MARTIN Julien",0,1,"m",385,88,88,0,0,0,0,"LOUEUR MEUBLE IR","(Non renseigné)","Dijon",-1,197,"Lyon"],["LOGISTIQUE DURAND","MARTIN Julien","MARTIN Julien",0,1,"m",85,54,54,0,0,0,0,"LOUEUR MEUBLE IR","(Non renseigné)","Dijon",-1,197,"Dijon"],["PHARMACIE VINCENT","LEROY Antoine","MARTIN Julien",1,2,"m",0,168,142,0,27,0,0,"COMPTA BIC - 2025","Apporteur 37","Nanteuil",5,0,"Dijon"],["PHARMACIE VINCENT","LEROY Antoine","MARTIN Julien",1,2,"m",0,152,125,0,27,0,0,"COMPTA BIC - 2025","Apporteur 37","Nanteuil",5,0,"Lyon"],["TRAITEUR LEMAIRE SCI","DUBOIS Camille","MOREAU Sophie",1,2,"p",0,640,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur K","Dijon",5,3,"Dijon"],["PLOMBERIE NICOLAS SASU","DUBOIS Camille","MOREAU Sophie",1,2,"p",0,640,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur K","Dijon",5,3,"Dijon"],["PLOMBERIE PERROT EURL","LEROY Antoine","LEROY Antoine",0,0,"m",60,119,25,0,22,72,0,"SCI IS","Gud","Dijon",-1,-1,"Lyon"],["BOULANGERIE GAILLARD","DUBOIS Camille","MOREAU Sophie",0,0,"p",1550,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur 39","Dijon",-1,-1,"Dijon"],["CARROSSERIE ROBIN","MARTIN Julien","MARTIN Julien",0,0,"m",249,446,317,82,37,0,10,"COMPTA BIC","Cci","Beire-Le-Fort",-1,-1,"Dijon"],["STUDIO MULLER SARL","DUBOIS Camille","DUBOIS Camille",1,2,"m",130,220,220,0,0,0,0,"COMPTA BIC - 2025","Apporteur H","Couchey",6,25,"Lyon"],["PHARMACIE CHARPENTIER SARL","MARTIN Julien","MARTIN Julien",0,1,"m",0,28,0,28,0,0,0,"Social - paies et charges","Thc","Dijon",-1,203,"Dijon"],["TRAITEUR BLANC SCI","MARTIN Julien","MOREAU Sophie",0,1,"p",0,400,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Site","Dijon",-1,205,"Dijon"],["OPTIQUE FAURE EURL","MARTIN Julien","MOREAU Sophie",0,0,"p",0,560,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur 37","Dijon",-1,-1,"Lyon"],["ÉPICERIE BOURGEOIS EURL","DUBOIS Camille","DUBOIS Camille",0,1,"m",1000,158,126,0,32,0,0,"COMPTA BIC - 2025","Apporteur 29","Genlis",-1,209,"Dijon"],["DOMAINE LECLERC SCI","DUBOIS Camille","DUBOIS Camille",0,1,"m",1000,94,62,0,32,0,0,"COMPTA BIC - 2025","(Non renseigné)","Quetigny",-1,209,"Dijon"],["FERME ROUSSEL SASU","MARTIN Julien","MARTIN Julien",0,1,"m",1330,296,258,0,37,0,0,"COMPTA BIC - 2025","Apporteur 30","Magny-Saint-Medard",-1,210,"Lyon"],["ATELIER DUMONT SAS","MARTIN Julien","MARTIN Julien",1,2,"m",1130,280,248,0,32,0,0,"COMPTA BIC - 2025","Site","Fontaine Les Dijon",5,40,"Dijon"],["CARROSSERIE GAUTHIER SAS","LEROY Antoine","MOREAU Sophie",0,0,"p",150,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Perrigny-Lès-Dijon",-1,-1,"Dijon"],["NÉGOCE HENRY SAS","MARTIN Julien","MARTIN Julien",1,2,"m",130,54,54,0,0,0,0,"LOUEUR MEUBLE IR","(Non renseigné)","Saint-Apollinaire",5,1,"Lyon"],["COIFFURE HENRY","DUBOIS Camille","DUBOIS Camille",0,1,"m",930,263,236,0,27,0,0,"COMPTA BIC - 2025","Apporteur 33","Villebichot",-1,216,"Dijon"],["CARROSSERIE ROBIN","MARTIN Julien","MOREAU Sophie",1,2,"p",0,800,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Cci","Beire-Le-Fort",5,4,"Dijon"],["RESTAURANT LEFEVRE SAS","MARTIN Julien","MARTIN Julien",0,1,"m",379,960,602,247,37,0,75,"COMPTA BIC - 2025","Apporteur 57","Paris",-1,217,"Lyon"],["ATELIER DUMONT SAS","MARTIN Julien","MARTIN Julien",0,1,"m",1679,248,194,28,27,0,0,"COMPTA BIC - 2025","(Non renseigné)","Dijon",-1,218,"Dijon"],["PEINTURE ROUSSEAU SASU","MARTIN Julien","MOREAU Sophie",1,2,"p",400,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Bge","Pouillenay",5,2,"Dijon"],["PAYSAGE ROBIN SARL","DUBOIS Camille","MOREAU Sophie",0,0,"p",450,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Recey Sur Ource",-1,-1,"Lyon"],["LOGISTIQUE LEMAIRE SCI","DUBOIS Camille","DUBOIS Camille",1,2,"m",0,119,25,0,22,72,0,"SCI IS","(Non renseigné)","Dijon",5,7,"Dijon"],["DISTRIBUTION HENRY","MARTIN Julien","MARTIN Julien",0,1,"m",930,194,167,0,27,0,0,"COMPTA BIC - 2025","(Non renseigné)","Perrigny Les Dijon",-1,219,"Dijon"],["ÉPICERIE PERROT SASU","DUBOIS Camille","DUBOIS Camille",1,2,"m",249,54,0,54,0,0,0,"Social - paies et charges","Site","Fontaine Francaise",5,13,"Lyon"],["ÉPICERIE PERROT SASU","DUBOIS Camille","DUBOIS Camille",1,2,"m",930,215,188,0,27,0,0,"COMPTA BIC - 2025","Site","Fontaine Francaise",5,13,"Dijon"],["COIFFURE GARNIER SAS","MARTIN Julien","MARTIN Julien",1,2,"m",130,45,25,0,0,20,0,"COMPTA BNC","(Non renseigné)","Bar Sur Aube",5,6,"Dijon"],["ÉPICERIE LECLERC EURL","MARTIN Julien","MARTIN Julien",1,2,"m",249,247,0,247,0,0,0,"Social - paies et charges","Site","Bar Sur Aube",5,6,"Lyon"],["ÉPICERIE LECLERC EURL","MARTIN Julien","MARTIN Julien",1,2,"m",130,668,631,0,37,0,0,"COMPTA BIC - 2025","Site","Bar Sur Aube",5,57,"Dijon"],["PLOMBERIE CHARPENTIER SASU","DUBOIS Camille","DUBOIS Camille",1,2,"m",130,87,87,0,0,0,0,"LOUEUR MEUBLE IR","(Non renseigné)","Dijon",5,25,"Dijon"],["PLOMBERIE CHARPENTIER SASU","DUBOIS Camille","DUBOIS Camille",0,0,"m",130,104,104,0,0,0,0,"COMPTA BIC - 2025","(Non renseigné)","Dijon",-1,-1,"Lyon"],["TRANSPORTS ROUSSEAU","MARTIN Julien","MARTIN Julien",1,2,"m",130,123,46,0,0,64,0,"COMPTA BNC - 2025","(Non renseigné)","Asnieres-Les-Dijon",5,25,"Dijon"],["FLEURISTE MARCHAND EURL","MARTIN Julien","MARTIN Julien",1,2,"m",130,99,40,0,0,48,0,"COMPTA BNC - 2025","(Non renseigné)","Saint-Vallier",5,28,"Dijon"],["INFORMATIQUE BLANC SARL","MARTIN Julien","MARTIN Julien",1,2,"m",0,596,476,0,32,0,88,"COMPTA BIC - 2025","(Non renseigné)","Fenay",4,0,"Lyon"],["SERVICES GIRARD SCI","LEROY Antoine","LEROY Antoine",1,2,"m",249,28,0,28,0,0,0,"Social - paies et charges","Apporteur 34","Saint-Sauveur-En-Puisaye",5,14,"Dijon"],["FLEURISTE MEYER SAS","MARTIN Julien","MOREAU Sophie",0,1,"p",0,967,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Vitteaux",-1,226,"Dijon"],["GARAGE ROUSSEAU","DUBOIS Camille","MOREAU Sophie",1,2,"p",450,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur P","Dijon",5,27,"Lyon"],["DESIGN PERROT SASU","MARTIN Julien","MARTIN Julien",0,1,"m",0,102,45,0,0,48,0,"COMPTA BNC - 2025","Apporteur E","Dijon",-1,230,"Dijon"],["NÉGOCE HENRY SAS","MARTIN Julien","MARTIN Julien",1,2,"m",465,54,54,0,0,0,0,"LOUEUR MEUBLE IR","(Non renseigné)","Dijon",7,71,"Dijon"],["CLINIQUE BLANC SARL","MARTIN Julien","MARTIN Julien",0,1,"m",730,98,30,0,26,42,0,"SCI IS","(Non renseigné)","Dijon",-1,232,"Lyon"],["BÂTIMENT BARRE","MARTIN Julien","MARTIN Julien",0,1,"m",379,377,273,65,38,0,0,"COMPTA BIC - 2025","(Non renseigné)","Dijon",-1,232,"Dijon"],["BÂTIMENT BARRE","MARTIN Julien","MARTIN Julien",0,1,"m",130,231,193,0,38,0,0,"COMPTA BIC - 2025","(Non renseigné)","Dijon",-1,232,"Dijon"],["MENUISERIE FONTAINE SASU","DUBOIS Camille","MOREAU Sophie",1,2,"p",0,1200,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Bge","Beaune",5,35,"Lyon"],["BÂTIMENT BLANC SCI","MARTIN Julien","MOREAU Sophie",1,2,"p",0,1120,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Chenove",4,1,"Dijon"],["NÉGOCE FONTAINE EURL","DUBOIS Camille","MOREAU Sophie",1,2,"p",0,300,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur K","Dijon",4,12,"Dijon"],["PEINTURE BARRE SARL","DUBOIS Camille","MOREAU Sophie",1,2,"p",0,300,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur K","Dijon",4,12,"Lyon"],["LIBRAIRIE GAILLARD SARL","DUBOIS Camille","MOREAU Sophie",1,2,"p",0,300,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur K","Dijon",4,12,"Dijon"],["FLEURISTE DUMONT","DUBOIS Camille","MOREAU Sophie",1,2,"p",0,300,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur K","Dijon",4,12,"Dijon"],["CONSEIL MARCHAND EURL","DUBOIS Camille","MOREAU Sophie",1,2,"p",0,300,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur K","Dijon",4,12,"Lyon"],["DOMAINE MEUNIER EURL","LEROY Antoine","MOREAU Sophie",1,2,"p",0,300,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Dijon",4,12,"Dijon"],["MENUISERIE BONNET EURL","DUBOIS Camille","DUBOIS Camille",1,2,"m",0,158,126,0,32,0,0,"COMPTA BIC - 2025","(Non renseigné)","Dijon",4,1,"Dijon"],["PAYSAGE RENARD SCI","LEROY Antoine","LEROY Antoine",1,2,"m",130,98,98,0,0,0,0,"COMPTA BIC - 2025","Site","Dijon",4,24,"Lyon"],["ATELIER FABRE SARL","DUBOIS Camille","DUBOIS Camille",1,2,"m",130,287,255,0,32,0,0,"COMPTA BIC - 2025","Apporteur F","Brazey-En-Plaine",4,4,"Dijon"],["CABINET CHARPENTIER","MARTIN Julien","MARTIN Julien",0,1,"p",0,1600,0,0,0,0,0,"STARTUP","(Non renseigné)","Dijon",-1,245,"Dijon"],["MENUISERIE BONNET EURL","DUBOIS Camille","MOREAU Sophie",1,2,"p",0,250,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Dijon",4,3,"Lyon"],["DESIGN MULLER EURL","MARTIN Julien","MARTIN Julien",0,1,"m",379,424,264,110,0,0,50,"COMPTA BIC - 2025","Apporteur 27","Dijon",-1,237,"Dijon"],["DESIGN VINCENT","DUBOIS Camille","DUBOIS Camille",0,1,"a",0,150,0,0,0,150,0,"ASSISTANCE IRPP","(Non renseigné)","Marsannay Le Bois",-1,237,"Dijon"],["BOUCHERIE MULLER SARL","MARTIN Julien","MARTIN Julien",0,1,"m",930,217,190,0,27,0,0,"COMPTA BIC - 2025","(Non renseigné)","Talant",-1,238,"Lyon"],["OPTIQUE MATHIEU","MARTIN Julien","MARTIN Julien",0,1,"m",1130,112,80,0,32,0,0,"COMPTA BIC - 2025","(Non renseigné)","Talant",-1,238,"Dijon"],["CLINIQUE FAURE","MARTIN Julien","MARTIN Julien",0,1,"m",380,208,208,0,0,0,0,"COMPTA BIC - 2025","(Non renseigné)","Beaune",-1,238,"Dijon"],["NÉGOCE HENRY SAS","MARTIN Julien","MARTIN Julien",0,1,"m",365,54,54,0,0,0,0,"LOUEUR MEUBLE IR","(Non renseigné)","Dijon",-1,238,"Lyon"],["CARROSSERIE VINCENT SAS","LEROY Antoine","LEROY Antoine",0,0,"m",0,48,0,0,0,0,0,"MICROENTREPRISE - 2026","(Non renseigné)","Dijon",-1,-1,"Dijon"],["ATELIER DUMONT SAS","MARTIN Julien","MARTIN Julien",0,1,"m",130,190,190,0,0,0,0,"COMPTA BIC - 2025","Apporteur Q","Dijon",-1,239,"Dijon"],["NÉGOCE FONTAINE EURL","DUBOIS Camille","MOREAU Sophie",0,0,"p",0,400,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur K","Dijon",-1,-1,"Lyon"],["ÉLECTRICITÉ GUERIN SCI","MARTIN Julien","MOREAU Sophie",1,2,"p",450,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Dijon",5,20,"Dijon"],["CARROSSERIE HENRY","DUBOIS Camille","DUBOIS Camille",1,2,"m",0,57,0,0,0,0,0,"MICROENTREPRISE - 2026","Apporteur 53","Longvic",4,9,"Dijon"],["INFORMATIQUE FONTAINE SASU","MARTIN Julien","MARTIN Julien",1,2,"m",0,562,525,0,27,0,10,"COMPTA BIC - 2025","(Non renseigné)","Dijon",4,8,"Lyon"],["LIBRAIRIE MARCHAND SAS","MARTIN Julien","MARTIN Julien",0,1,"m",379,466,352,82,32,0,0,"COMPTA BIC - 2025","(Non renseigné)","Dijon",-1,245,"Dijon"],["ATELIER FABRE SARL","DUBOIS Camille","DUBOIS Camille",0,1,"m",130,287,255,0,32,0,0,"COMPTA BIC - 2025","Apporteur F","Brazey-En-Plaine",-1,243,"Dijon"],["LIBRAIRIE MARCHAND SAS","MARTIN Julien","MARTIN Julien",1,2,"p",0,400,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Dijon",4,8,"Lyon"],["OPTIQUE MATHIEU","MARTIN Julien","MARTIN Julien",0,1,"m",465,111,84,0,27,0,0,"COMPTA BIC - 2025","(Non renseigné)","Dijon",-1,245,"Dijon"],["BÂTIMENT ROY EURL","MARTIN Julien","MARTIN Julien",0,1,"m",130,75,75,0,0,0,0,"LOUEUR MEUBLE IR","Site","Praz-Sur-Arly",-1,245,"Dijon"],["IMMOBILIER HENRY SAS","DUBOIS Camille","DUBOIS Camille",0,1,"m",130,123,46,0,0,64,0,"COMPTA BNC - 2025","Google","Saulon-La-Chapelle",-1,246,"Lyon"],["DOMAINE GIRARD SAS","DUBOIS Camille","DUBOIS Camille",0,1,"m",249,54,0,54,0,0,0,"Social - paies et charges","Google","Dijon",-1,246,"Dijon"],["DOMAINE GIRARD SAS","DUBOIS Camille","DUBOIS Camille",0,1,"m",130,236,236,0,0,0,0,"COMPTA BIC - 2025","Google","Dijon",-1,246,"Dijon"],["BÂTIMENT MASSON SAS","DUBOIS Camille","DUBOIS Camille",0,1,"m",215,82,25,0,22,35,0,"SCI IS","Google","-",-1,246,"Lyon"],["TRAITEUR BARRE SAS","DUBOIS Camille","DUBOIS Camille",0,1,"m",215,82,25,0,22,35,0,"SCI IS","Google","Corcelles-Les-Citeaux",-1,246,"Dijon"],["GROUPE COLIN EURL","MARTIN Julien","MARTIN Julien",1,2,"m",130,96,0,0,0,0,0,"MICROENTREPRISE - 2026","Site","Dijon",4,3,"Dijon"],["GROUPE CLEMENT SCI","DUBOIS Camille","DUBOIS Camille",1,2,"p",400,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Bge","Dijon",4,1,"Lyon"],["BOUCHERIE GUERIN","DUBOIS Camille","DUBOIS Camille",0,1,"m",730,82,25,0,22,35,0,"SCI IS","Apporteur S","Dijon",-1,250,"Dijon"],["STUDIO FABRE SARL","DUBOIS Camille","DUBOIS Camille",1,2,"m",1230,217,190,0,27,0,0,"COMPTA BIC - 2025","(Non renseigné)","Dijon",4,0,"Dijon"],["PEINTURE BONNET","DUBOIS Camille","DUBOIS Camille",1,2,"p",400,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur 41","Genlis",4,18,"Lyon"],["CARROSSERIE GAUTHIER SAS","LEROY Antoine","MOREAU Sophie",1,2,"p",550,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Perrigny-Lès-Dijon",4,16,"Dijon"],["DESIGN RIVIERE SAS","MARTIN Julien","MARTIN Julien",0,1,"p",0,600,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Thc","Dijon",-1,252,"Dijon"],["OPTIQUE LOUIS EURL","MARTIN Julien","MARTIN Julien",1,2,"a",0,200,0,0,0,200,0,"ASSISTANCE IRPP","(Non renseigné)","Fenay",4,5,"Lyon"],["NÉGOCE HENRY SAS","LEROY Antoine","LEROY Antoine",0,0,"m",0,88,88,0,0,0,0,"LOUEUR MEUBLE IR","(Non renseigné)","Dijon",-1,-1,"Dijon"],["DISTRIBUTION FONTAINE EURL","LEROY Antoine","LEROY Antoine",0,1,"m",65,102,55,0,22,25,0,"SCI IR","(Non renseigné)","Dijon",-1,253,"Dijon"],["DISTRIBUTION FONTAINE EURL","LEROY Antoine","LEROY Antoine",0,0,"m",0,88,88,0,0,0,0,"LOUEUR MEUBLE IR","(Non renseigné)","Dijon",-1,-1,"Lyon"],["COIFFURE HENRY SASU","MARTIN Julien","MARTIN Julien",1,2,"m",980,45,31,0,14,0,0,"COMPTA BIC - 2025","Client","Neuilly-Crimolois",3,62,"Dijon"],["BÂTIMENT GARNIER SASU","DUBOIS Camille","DUBOIS Camille",1,2,"m",465,71,71,0,0,0,0,"LOUEUR MEUBLE IR","Google","Dijon",5,56,"Dijon"],["MENUISERIE COLIN SAS","LEROY Antoine","LEROY Antoine",1,2,"m",500,76,32,0,29,81,0,"SCI IS","Apporteur 36","Dijon",6,77,"Lyon"],["PAYSAGE RENARD SCI","LEROY Antoine","LEROY Antoine",0,1,"m",130,86,86,0,0,0,0,"COMPTA BIC - 2025","Site","Dijon",-1,254,"Dijon"],["OPTIQUE NOEL SAS","MARTIN Julien","MOREAU Sophie",0,1,"p",1300,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur 47","Dijon",-1,257,"Dijon"],["OPTIQUE NOEL SAS","MARTIN Julien","MOREAU Sophie",0,1,"p",400,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur 47","Dijon",-1,257,"Lyon"],["PAYSAGE ROBIN SARL","DUBOIS Camille","DUBOIS Camille",1,2,"m",130,144,144,0,0,0,0,"COMPTA BIC - 2025","(Non renseigné)","Recey Sur Ource",3,13,"Dijon"],["FLEURISTE ROUSSEL","MARTIN Julien","MARTIN Julien",1,2,"m",249,82,0,82,0,0,0,"Social - paies et charges","Internet","Ouges",4,12,"Dijon"],["NÉGOCE LOUIS SASU","MARTIN Julien","MARTIN Julien",0,0,"m",280,90,26,0,0,64,0,"COMPTA BNC - 2025","(Non renseigné)","Dijon",-1,-1,"Lyon"],["FERME BERTRAND","LEROY Antoine","LEROY Antoine",0,1,"m",249,164,0,164,0,0,0,"Social - paies et charges","Apporteur 34","Saints-En-Puisaye",-1,259,"Dijon"],["FERME BERTRAND","LEROY Antoine","LEROY Antoine",0,1,"m",130,190,190,0,0,0,0,"COMPTA BIC - 2025","Apporteur 34","Saints-En-Puisaye",-1,259,"Dijon"],["CHARPENTE ROUSSEAU SARL","DUBOIS Camille","DUBOIS Camille",0,1,"m",634,172,115,0,22,35,0,"SCI IS","(Non renseigné)","Selongey",-1,260,"Lyon"],["ÉPICERIE HENRY SAS","DUBOIS Camille","DUBOIS Camille",1,2,"m",130,109,25,0,22,62,0,"SCI IS","Apporteur 54","Pont-Et-Massene",3,3,"Dijon"],["SERVICES ROBIN SAS","DUBOIS Camille","DUBOIS Camille",1,2,"m",130,82,25,0,22,35,0,"SCI IS","Apporteur 54","Pont-Et-Massene",3,3,"Dijon"],["OPTIQUE MARCHAND SAS","DUBOIS Camille","DUBOIS Camille",1,2,"m",249,82,0,82,0,0,0,"Social - paies et charges","Apporteur 54","Pont-Et-Massene",3,3,"Lyon"],["OPTIQUE MARCHAND SAS","DUBOIS Camille","DUBOIS Camille",1,2,"m",130,290,258,0,32,0,0,"COMPTA BIC - 2025","Apporteur 54","Pont-Et-Massene",3,3,"Dijon"],["MENUISERIE ROUSSEAU EURL","MARTIN Julien","MARTIN Julien",0,1,"m",130,206,206,0,0,0,0,"COMPTA BIC - 2025","(Non renseigné)","Dijon",-1,261,"Dijon"],["OPTIQUE DUMONT SCI","MARTIN Julien","MOREAU Sophie",1,2,"p",400,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Site","Plombieres-Les-Dijon",4,15,"Lyon"],["DISTRIBUTION MOREL","MARTIN Julien","MARTIN Julien",0,1,"m",130,70,0,0,0,0,0,"MICROENTREPRISE - 2026","(Non renseigné)","Dijon",-1,261,"Dijon"],["BOULANGERIE GAILLARD","DUBOIS Camille","MOREAU Sophie",0,1,"p",800,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur 39","Dijon",-1,265,"Dijon"],["LIBRAIRIE HENRY","DUBOIS Camille","DUBOIS Camille",0,1,"m",930,254,218,0,27,0,10,"COMPTA BIC - 2025","Apporteur T","Chevigny Saint Sauveur",-1,265,"Lyon"],["PAYSAGE GAUTHIER EURL","LEROY Antoine","MOREAU Sophie",1,2,"p",0,75,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Gud","Pichanges",3,4,"Dijon"],["BOUCHERIE LOUIS SCI","LEROY Antoine","LEROY Antoine",1,2,"m",130,90,90,0,0,0,0,"COMPTA BIC - 2025","Gud","Dijon",3,5,"Dijon"],["STUDIO GAUTHIER SASU","DUBOIS Camille","DUBOIS Camille",0,1,"p",500,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Site","Dijon",-1,265,"Lyon"],["DESIGN VINCENT","DUBOIS Camille","DUBOIS Camille",1,2,"m",215,54,54,0,0,0,0,"LOUEUR MEUBLE IR","Google","Marsannay Le Bois",3,2,"Dijon"],["CHARPENTE ROUSSEAU SARL","DUBOIS Camille","DUBOIS Camille",0,1,"m",334,172,115,0,22,35,0,"SCI IS","(Non renseigné)","Selongey",-1,267,"Dijon"],["DOMAINE BOYER SASU","LEROY Antoine","DUBOIS Camille",0,0,"m",0,150,108,0,32,0,10,"COMPTA BIC","Apporteur O","Noiron-Sous-Gevrey",-1,-1,"Lyon"],["BOULANGERIE RIVIERE SCI","MARTIN Julien","MARTIN Julien",1,2,"m",130,68,0,0,0,0,0,"MICROENTREPRISE - 2026","(Non renseigné)","Dijon",4,20,"Dijon"],["INFORMATIQUE BLANC SARL","MARTIN Julien","MOREAU Sophie",1,2,"p",0,600,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Fenay",3,13,"Dijon"],["BÂTIMENT FONTAINE SASU","MARTIN Julien","MARTIN Julien",0,1,"m",280,162,162,0,0,0,0,"COMPTA BIC - 2025","Site","Beaune",-1,273,"Lyon"],["GROUPE CLEMENT SCI","DUBOIS Camille","DUBOIS Camille",0,1,"m",249,54,0,54,0,0,0,"Social - paies et charges","Bge","Dijon",-1,274,"Dijon"],["GROUPE CLEMENT SCI","DUBOIS Camille","DUBOIS Camille",0,1,"m",1530,417,360,0,32,0,25,"COMPTA BIC - 2025","Bge","Dijon",-1,274,"Dijon"],["PAYSAGE PERRIN SARL","LEROY Antoine","LEROY Antoine",1,2,"m",335,54,54,0,0,0,0,"LOUEUR MEUBLE IR","(Non renseigné)","Dijon",5,74,"Lyon"],["DISTRIBUTION BARRE EURL","DUBOIS Camille","DUBOIS Camille",0,1,"m",730,82,25,0,22,35,0,"SCI IS","(Non renseigné)","Gevrey Chambertin",-1,278,"Dijon"],["CLINIQUE DAVID SAS","DUBOIS Camille","DUBOIS Camille",0,1,"m",249,54,0,54,0,0,0,"Social - paies et charges","Apporteur A","Gebrey-Chambertin",-1,278,"Dijon"],["DOMAINE LECLERC SCI","DUBOIS Camille","DUBOIS Camille",0,1,"m",1130,94,62,0,32,0,0,"COMPTA BIC - 2025","(Non renseigné)","Gevrey Chambertin",-1,278,"Lyon"],["CLINIQUE DAVID SAS","DUBOIS Camille","DUBOIS Camille",0,1,"m",930,290,264,0,27,0,0,"COMPTA BIC - 2025","Apporteur A","Gebrey-Chambertin",-1,278,"Dijon"],["ÉPICERIE BONNET SAS","MARTIN Julien","MARTIN Julien",0,1,"m",0,773,475,0,0,0,298,"COMPTA BIC - 2025","Thc","Paris",-1,278,"Dijon"],["FERME AUBERT SASU","DUBOIS Camille","DUBOIS Camille",0,1,"m",130,172,140,0,32,0,0,"COMPTA BIC - 2025","(Non renseigné)","Fontaine Les Dijon",-1,280,"Lyon"],["IMMOBILIER BONNET SASU","LEROY Antoine","LEROY Antoine",1,2,"m",0,62,20,0,0,42,0,"COMPTA BNC","Gud","Aramon",3,1,"Dijon"],["CLINIQUE FAURE","MARTIN Julien","MARTIN Julien",1,2,"m",0,40,40,0,0,0,0,"COMPTA BNC - 2025","(Non renseigné)","Epoisses",6,117,"Dijon"],["PLOMBERIE CHARPENTIER SASU","DUBOIS Camille","DUBOIS Camille",1,2,"m",130,60,0,0,0,0,0,"MICROENTREPRISE - 2026","(Non renseigné)","Dijon",3,7,"Lyon"],["INFORMATIQUE ROBIN SCI","DUBOIS Camille","DUBOIS Camille",0,1,"p",300,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur 58","Dijon",-1,281,"Dijon"],["PEINTURE DURAND SAS","MARTIN Julien","MOREAU Sophie",1,2,"p",600,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Thc","Dijon",2,0,"Dijon"],["NÉGOCE ROY SCI","DUBOIS Camille","DUBOIS Camille",0,1,"m",249,55,0,55,0,0,0,"Social - paies et charges","Bge","Dijon",-1,287,"Lyon"],["NÉGOCE ROY SCI","DUBOIS Camille","DUBOIS Camille",0,1,"m",1730,356,253,0,37,0,66,"COMPTA BIC - 2025","Bge","Dijon",-1,287,"Dijon"],["NÉGOCE ROY SCI","DUBOIS Camille","DUBOIS Camille",0,1,"m",1730,323,220,0,37,0,66,"COMPTA BIC - 2025","Bge","Dijon",-1,287,"Dijon"],["OPTIQUE MATHIEU","MARTIN Julien","MARTIN Julien",0,1,"m",130,101,64,0,37,0,0,"COMPTA BIC - 2025","(Non renseigné)","—",-1,288,"Lyon"],["PAYSAGE HENRY SAS 239","MARTIN Julien","MARTIN Julien",0,1,"m",639,886,662,192,32,0,0,"COMPTA BIC - 2025","Apporteur G","Rivesaltes",-1,288,"Dijon"],["DOMAINE BOYER SASU","LEROY Antoine","DUBOIS Camille",1,2,"m",0,120,78,0,32,0,10,"COMPTA BIC","Apporteur O","Noiron-Sous-Gevrey",2,2,"Dijon"],["CABINET GAUTHIER SARL","MARTIN Julien","MARTIN Julien",0,1,"m",130,82,25,0,22,35,0,"SCI IS","Site","Dijon",-1,288,"Lyon"],["CONSEIL BONNET SCI","MARTIN Julien","MARTIN Julien",1,2,"p",100,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Bge","Dijon",2,0,"Dijon"],["CONSEIL DAVID SCI","DUBOIS Camille","MOREAU Sophie",0,1,"p",0,185,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur 56","Dijon",-1,358,"Dijon"],["MAISON MEUNIER","MARTIN Julien","MARTIN Julien",0,1,"m",130,82,25,0,22,35,0,"SCI IS","Apporteur 44","Dijon",-1,289,"Lyon"],["MAISON MEUNIER","MARTIN Julien","MARTIN Julien",0,1,"m",65,103,26,0,0,64,0,"COMPTA BNC - 2025","Apporteur 44","Dijon",-1,289,"Dijon"],["MAISON MEUNIER","MARTIN Julien","MARTIN Julien",0,1,"m",130,111,20,0,0,64,0,"COMPTA BNC - 2025","Apporteur 44","Dijon",-1,289,"Dijon"],["ÉPICERIE ANTOINE SAS","MOREAU Sophie","MOREAU Sophie",0,1,"p",450,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Dijon",-1,289,"Lyon"],["GARAGE BOURGEOIS SASU","MARTIN Julien","MARTIN Julien",1,2,"p",300,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Dijon",2,0,"Dijon"],["TRAITEUR GAILLARD SAS","MARTIN Julien","MARTIN Julien",0,1,"m",380,170,170,0,0,0,0,"COMPTA BIC - 2025","(Non renseigné)","Dijon",-1,292,"Dijon"],["GARAGE BOURGEOIS SASU","MARTIN Julien","MARTIN Julien",0,1,"m",1030,82,25,0,22,35,0,"SCI IS","(Non renseigné)","Dijon",-1,292,"Lyon"],["NÉGOCE HENRY SAS","MARTIN Julien","MARTIN Julien",0,1,"m",400,54,54,0,0,0,0,"LOUEUR MEUBLE IR","(Non renseigné)","Dijon",-1,294,"Dijon"],["NÉGOCE ROCHE SCI","MARTIN Julien","MARTIN Julien",1,2,"m",1430,184,142,0,32,0,10,"COMPTA BIC - 2025","Bge","Plombieres-Les-Dijon",2,0,"Dijon"],["NÉGOCE HENRY SAS","MARTIN Julien","MARTIN Julien",1,2,"m",215,54,54,0,0,0,0,"LOUEUR MEUBLE IR","Site","Dijon",2,14,"Lyon"],["CABINET MATHIEU","MARTIN Julien","MARTIN Julien",0,1,"a",0,280,0,0,0,280,0,"ASSISTANCE IRPP","(Non renseigné)","Paris",-1,307,"Dijon"],["SERVICES LOUIS SARL","MARTIN Julien","MARTIN Julien",1,2,"m",130,76,0,0,0,0,0,"MICROENTREPRISE - 2026","Apporteur V","Dijon",2,1,"Dijon"],["SERVICES LOUIS SARL","MARTIN Julien","MARTIN Julien",1,2,"m",0,141,35,0,0,94,0,"COMPTA BNC - 2025","Apporteur V","Dijon",8,196,"Lyon"],["GROUPE GIRARD","DUBOIS Camille","LEROY Antoine",1,2,"m",249,28,0,28,0,0,0,"Social - paies et charges","Apporteur 46","Ouges",2,20,"Dijon"],["MENUISERIE HENRY EURL","LEROY Antoine","LEROY Antoine",1,2,"m",0,302,302,0,0,0,0,"COMPTA BIC - 2025","Apporteur D","Dijon",3,34,"Dijon"],["MENUISERIE HENRY EURL","LEROY Antoine","LEROY Antoine",0,0,"p",150,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur D","Dijon",-1,-1,"Lyon"],["NÉGOCE ROCHE SCI","MARTIN Julien","MARTIN Julien",1,2,"m",1430,184,142,0,32,0,10,"COMPTA BIC - 2025","Bge","Plombieres-Les-Dijon",2,9,"Dijon"],["COIFFURE ANTOINE","MARTIN Julien","MARTIN Julien",0,1,"p",0,2000,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Dijon",-1,313,"Dijon"],["ÉLECTRICITÉ GUERIN SCI","MARTIN Julien","MARTIN Julien",1,2,"m",1700,363,244,82,37,0,0,"COMPTA BIC - 2025","(Non renseigné)","Dijon",5,94,"Lyon"],["PHARMACIE FONTAINE","MARTIN Julien","MARTIN Julien",1,2,"m",900,119,25,0,22,72,0,"SCI IS","(Non renseigné)","Dijon",5,94,"Dijon"],["CARROSSERIE BLANC SCI","MARTIN Julien","MARTIN Julien",1,2,"m",215,54,54,0,0,0,0,"LOUEUR MEUBLE IR","Apporteur K","Dijon",2,3,"Dijon"],["ATELIER BERTRAND SAS","MARTIN Julien","MARTIN Julien",1,2,"m",900,82,25,0,22,35,0,"SCI IS","Client","Dijon",2,6,"Lyon"],["ATELIER DUMONT SAS","MARTIN Julien","MARTIN Julien",1,2,"m",1100,212,176,0,27,0,10,"COMPTA BIC - 2025","Thc","Is-Sur-Tille",1,0,"Dijon"],["ATELIER DUMONT SAS","MARTIN Julien","MARTIN Julien",1,2,"m",1430,224,198,0,27,0,0,"COMPTA BIC - 2025","Apporteur 59","Ruffey Les Echirey",1,0,"Dijon"],["IMMOBILIER RIVIERE SASU","MARTIN Julien","MARTIN Julien",0,1,"m",380,89,35,0,0,42,0,"COMPTA BNC - 2025","Site","Blaisy-Haut",-1,316,"Lyon"],["DISTRIBUTION LECLERC","MARTIN Julien","DUBOIS Camille",0,0,"m",0,352,320,0,32,0,0,"COMPTA BIC - 2025","Thc","Dijon",-1,-1,"Dijon"],["OPTIQUE CHEVALIER SASU","LEROY Antoine","LEROY Antoine",1,2,"m",130,40,30,0,11,0,0,"COMPTA BIC - 2025","Gud","Fontaine-Les-Dijon",1,11,"Dijon"],["PHARMACIE ROUSSEL SASU","DUBOIS Camille","DUBOIS Camille",0,1,"m",249,55,0,55,0,0,0,"Social - paies et charges","Apporteur Y","Dijon",-1,320,"Lyon"],["PHARMACIE ROUSSEL SASU","DUBOIS Camille","DUBOIS Camille",0,1,"m",1130,236,204,0,32,0,0,"COMPTA BIC - 2025","Apporteur Y","Dijon",-1,320,"Dijon"],["BOULANGERIE FONTAINE","LEROY Antoine","LEROY Antoine",1,2,"m",0,144,112,0,32,0,0,"COMPTA BIC - 2025","(Non renseigné)","Dijon",3,67,"Dijon"],["TRAITEUR BRUN SCI","DUBOIS Camille","DUBOIS Camille",0,1,"m",1500,119,35,0,31,53,0,"SCI IR","Site","Aulnay-Sous-Bois",-1,324,"Lyon"],["MENUISERIE BONNET EURL","DUBOIS Camille","DUBOIS Camille",0,1,"m",124,28,0,28,0,0,0,"Social - paies et charges","(Non renseigné)","Dijon",-1,327,"Dijon"],["MENUISERIE BONNET EURL","DUBOIS Camille","DUBOIS Camille",0,1,"m",1000,186,154,0,32,0,0,"COMPTA BIC - 2025","(Non renseigné)","Dijon",-1,327,"Dijon"],["MENUISERIE BONNET EURL","DUBOIS Camille","DUBOIS Camille",0,1,"m",1000,158,126,0,32,0,0,"COMPTA BIC - 2025","(Non renseigné)","Dijon",-1,327,"Lyon"],["FERME ROBIN SARL","LEROY Antoine","LEROY Antoine",0,1,"m",130,197,197,0,0,0,0,"COMPTA BIC - 2025","Apporteur 45","Dijon",-1,327,"Dijon"],["FERME ROBIN SARL","LEROY Antoine","LEROY Antoine",0,0,"m",240,30,0,0,0,0,30,"COMPTA BIC - 2025","Apporteur 45","Dijon",-1,-1,"Dijon"],["BOUCHERIE FAURE EURL","DUBOIS Camille","LEROY Antoine",0,1,"m",124,55,0,55,0,0,0,"Social - paies et charges","(Non renseigné)","Dijon",-1,327,"Lyon"],["FERME ROBIN SARL","LEROY Antoine","LEROY Antoine",0,1,"m",249,220,0,220,0,0,0,"Social - paies et charges","Apporteur 45","Dijon",-1,327,"Dijon"],["COIFFURE LEMAIRE EURL","LEROY Antoine","LEROY Antoine",0,1,"m",249,302,0,302,0,0,0,"Social - paies et charges","(Non renseigné)","Dijon",-1,327,"Dijon"],["FERME MEUNIER SCI","DUBOIS Camille","LEROY Antoine",0,1,"m",249,357,0,357,0,0,0,"Social - paies et charges","Site","Dijon",-1,327,"Lyon"],["IMMOBILIER RENARD SASU","DUBOIS Camille","MOREAU Sophie",1,2,"p",0,800,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Bge","Ouges",1,36,"Dijon"],["CHARPENTE CHEVALIER","DUBOIS Camille","DUBOIS Camille",0,1,"m",130,212,150,0,37,0,25,"COMPTA BIC - 2025","Apporteur 31","Luxeuil Les Bains",-1,334,"Dijon"],["PAYSAGE MEUNIER SASU","DUBOIS Camille","DUBOIS Camille",0,1,"m",249,137,0,137,0,0,0,"Social - paies et charges","Apporteur 32","La Neuvelle-Les-Lure",-1,334,"Lyon"],["PAYSAGE MEUNIER SASU","DUBOIS Camille","DUBOIS Camille",0,1,"m",130,362,304,0,32,0,25,"COMPTA BIC - 2025","Apporteur 32","La Neuvelle-Les-Lure",-1,334,"Dijon"],["OPTIQUE GIRARD SAS","LEROY Antoine","LEROY Antoine",1,2,"m",130,150,108,0,32,0,10,"COMPTA BIC - 2025","Apporteur C","Vignoles",3,67,"Dijon"],["OPTIQUE GIRARD SAS","LEROY Antoine","LEROY Antoine",1,2,"m",249,28,0,28,0,0,0,"Social - paies et charges","Apporteur C","Vignoles",3,58,"Lyon"],["NÉGOCE MEYER SASU","LEROY Antoine","LEROY Antoine",1,2,"m",80,41,12,0,11,18,0,"SCI IS","Gud","Pichanges",1,0,"Dijon"],["NÉGOCE MARCHAND SARL","MARTIN Julien","MOREAU Sophie",0,1,"p",0,300,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Dijon",-1,337,"Dijon"],["FLEURISTE MARCHAND","MARTIN Julien","MARTIN Julien",1,2,"m",130,102,36,0,0,53,0,"COMPTA BNC - 2025","Apporteur 44","Dijon",6,156,"Lyon"],["CARROSSERIE ANTOINE SCI","DUBOIS Camille","DUBOIS Camille",1,2,"m",249,110,0,110,0,0,0,"Social - paies et charges","Apporteur 52","Dijon",1,1,"Dijon"],["CARROSSERIE ANTOINE SCI","DUBOIS Camille","DUBOIS Camille",1,2,"m",130,371,332,0,38,0,0,"COMPTA BIC - 2025","Apporteur 52","Dijon",1,1,"Dijon"],["STUDIO ROBIN SAS","DUBOIS Camille","DUBOIS Camille",0,1,"m",1430,236,208,0,27,0,0,"COMPTA BIC - 2025","Apporteur N","Fontaine Les Dijon",-1,343,"Lyon"],["STUDIO ROBIN SAS","DUBOIS Camille","DUBOIS Camille",0,1,"m",1630,254,222,0,32,0,0,"COMPTA BIC - 2025","Apporteur N","Fontaine Les Dijon",-1,343,"Dijon"],["STUDIO ROBIN SAS","DUBOIS Camille","DUBOIS Camille",0,1,"m",249,28,0,28,0,0,0,"Social - paies et charges","Apporteur N","Fontaine Les Dijon",-1,343,"Dijon"],["NÉGOCE VINCENT","LEROY Antoine","MOREAU Sophie",1,2,"p",150,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Gud","Paris 17",1,27,"Lyon"],["CARROSSERIE DENIS","MARTIN Julien","MOREAU Sophie",0,1,"p",0,150,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Site","Dijon",-1,349,"Dijon"],["INFORMATIQUE BLANC SARL","MARTIN Julien","MARTIN Julien",1,2,"m",249,28,0,28,0,0,0,"Social - paies et charges","(Non renseigné)","Fenay",0,0,"Dijon"],["GARAGE DAVID SASU","MARTIN Julien","MARTIN Julien",0,1,"p",0,3200,0,0,0,0,0,"STARTUP","Site","Dijon",-1,348,"Lyon"],["GARAGE DAVID SASU","MARTIN Julien","MARTIN Julien",0,1,"m",1330,196,149,0,47,0,0,"COMPTA STARTUP","Site","Dijon",-1,348,"Dijon"],["DOMAINE MEUNIER EURL","LEROY Antoine","MOREAU Sophie",1,2,"p",150,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","(Non renseigné)","Dijon",1,6,"Dijon"],["FLEURISTE NOEL EURL","LEROY Antoine","LEROY Antoine",1,2,"m",130,97,87,0,0,0,10,"COMPTA BIC - 2025","Apporteur C","Ecole-Valentin",2,64,"Lyon"],["TRANSPORTS BOYER SAS","DUBOIS Camille","DUBOIS Camille",0,1,"m",130,119,25,0,22,72,0,"SCI IS","Apporteur 52","Longecourt-En-Plaine",-1,350,"Dijon"],["PLOMBERIE DENIS EURL","DUBOIS Camille","DUBOIS Camille",1,2,"m",130,199,167,0,32,0,0,"COMPTA BIC - 2025","Site","Longecourt-En-Plaine",1,13,"Dijon"],["STUDIO FABRE SARL","DUBOIS Camille","DUBOIS Camille",0,1,"m",1630,350,318,0,32,0,0,"COMPTA BIC - 2025","Apporteur 50","-",-1,351,"Lyon"],["TRAITEUR FABRE SCI","DUBOIS Camille","MOREAU Sophie",1,2,"p",0,250,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Internet","Dijon",0,1,"Dijon"],["OPTIQUE DURAND SASU","DUBOIS Camille","MOREAU Sophie",1,2,"p",0,250,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Internet","Dijon",0,4,"Dijon"],["GARAGE LOUIS SASU","MARTIN Julien","MARTIN Julien",0,1,"m",0,88,88,0,0,0,0,"LOUEUR MEUBLE IR","Cci","Quetigny",-1,356,"Lyon"],["GARAGE LOUIS SASU","MARTIN Julien","MARTIN Julien",0,1,"m",130,82,25,0,22,35,0,"SCI IS","Cci","Quetigny",-1,356,"Dijon"],["GARAGE LOUIS SASU","MARTIN Julien","MARTIN Julien",0,1,"m",130,180,152,0,27,0,0,"COMPTA BIC - 2025","Cci","Quetigny",-1,356,"Dijon"],["GARAGE LOUIS SASU","MARTIN Julien","MARTIN Julien",0,1,"m",130,139,112,0,27,0,0,"COMPTA BIC - 2025","Cci","Quetigny",-1,356,"Lyon"],["GARAGE LOUIS SASU","MARTIN Julien","MARTIN Julien",0,1,"m",130,200,174,0,27,0,0,"COMPTA BIC - 2025","Cci","Quetigny",-1,356,"Dijon"],["RESTAURANT CHEVALIER SCI","DUBOIS Camille","DUBOIS Camille",0,1,"m",240,175,123,0,32,0,20,"COMPTA BIC","Bge","Collonges Et Premieres",-1,358,"Dijon"],["COIFFURE BERTRAND","DUBOIS Camille","DUBOIS Camille",1,2,"m",1630,274,242,0,32,0,0,"COMPTA BIC","Site","Ancey",0,9,"Lyon"],["OPTIQUE DUMONT SCI","MARTIN Julien","DUBOIS Camille",1,2,"m",249,28,0,28,0,0,0,"Social - paies et charges","Site","Plombieres-Les-Dijon",1,35,"Dijon"],["ATELIER DUMONT SAS","MARTIN Julien","MARTIN Julien",0,1,"m",130,95,40,0,0,42,0,"COMPTA BNC - 2025","Site","Talant",-1,359,"Dijon"],["DOMAINE BRUN SASU","MARTIN Julien","LEROY Antoine",0,0,"m",249,54,0,54,0,0,0,"Social - paies et charges","Cci","Dijon",-1,-1,"Lyon"],["DISTRIBUTION MEUNIER SCI","DUBOIS Camille","DUBOIS Camille",0,1,"m",0,130,98,0,32,0,0,"COMPTA BIC - 2025","Apporteur W","Dijon",-1,362,"Dijon"],["LOGISTIQUE LECLERC SAS","DUBOIS Camille","DUBOIS Camille",0,1,"m",0,106,106,0,0,0,0,"COMPTA BIC - 2025","Apporteur W","Dijon",-1,362,"Dijon"],["LOGISTIQUE LECLERC SAS","DUBOIS Camille","DUBOIS Camille",0,1,"a",0,100,0,0,0,100,0,"ASSISTANCE IRPP","Apporteur W","Dijon",-1,362,"Lyon"],["NÉGOCE GARNIER SAS","LEROY Antoine","MOREAU Sophie",0,1,"p",0,300,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Site","Labergement-Foigney",-1,362,"Dijon"],["GARAGE DENIS SASU","MARTIN Julien","MARTIN Julien",1,2,"m",330,105,50,0,0,42,0,"COMPTA BNC - 2025","Site","Chenove",5,167,"Dijon"],["PEINTURE ROUSSEL","DUBOIS Camille","DUBOIS Camille",1,2,"p",500,0,0,0,0,0,0,"PRESTATIONS EXCEPTIONNELLE","Apporteur P","Dijon",1,34,"Lyon"],["FERME LECLERC SCI","DUBOIS Camille","DUBOIS Camille",1,2,"m",600,119,25,0,22,72,0,"SCI IS","Apporteur S","Dijon",1,26,"Dijon"],["DESIGN NOEL SAS","MARTIN Julien","MARTIN Julien",0,1,"m",130,140,45,0,0,83,0,"COMPTA BNC - 2025","(Non renseigné)","Dijon",-1,363,"Dijon"],["CONSEIL BERTRAND SASU","DUBOIS Camille","DUBOIS Camille",0,1,"m",249,28,0,28,0,0,0,"Social - paies et charges","(Non renseigné)","Varois Et Chaignot",-1,364,"Lyon"],["CONSEIL BERTRAND SASU","DUBOIS Camille","DUBOIS Camille",0,1,"m",0,166,134,0,32,0,0,"COMPTA BIC - 2025","(Non renseigné)","Varois Et Chaignot",-1,364,"Dijon"],["DOMAINE GUERIN","DUBOIS Camille","DUBOIS Camille",0,1,"m",249,54,0,54,0,0,0,"Social - paies et charges","Site","Dijon",-1,365,"Dijon"]];
+const K={};let fSite='all',fCol='all';
+const NATIVE_CAB=[["06/2025",1,22,"",23,4,37568.0,6003.0],["07/2025",2,19,"",21,13,54061.0,21830.0],["08/2025",1,15,"",16,12,38217.0,16217.0],["09/2025",4,23,"",27,16,58753.0,22990.0],["10/2025",3,24,"",27,24,56209.0,33994.0],["11/2025",7,13,"",20,27,52950.0,50258.0],["12/2025",2,8,"",10,11,11592.0,14371.0],["01/2026",1,5,"",6,8,22094.0,16939.0],["02/2026",2,9,"",11,9,9888.0,28122.0],["03/2026",1,11,"",12,17,23641.0,30242.0],["04/2026",2,7,"",9,19,18525.0,36227.0],["05/2026","",10,"",10,15,9779.0,46888.0],["06/2026",2,4,"",6,8,14896.0,5661.0]];
+const NATIVE_SEPA=[["MULLER","Alice","2026-06-08 17:23:14","SEPA-15383"],["FABRE","Nathan","2025-11-20 14:31:21","SEPA-66148"],["HENRY","Hugo","2026-06-09 12:55:04","SEPA-19038"],["MEUNIER","Emma","2026-03-02 16:07:36","SEPA-11658"],["BARRE","Louis","2026-01-14 15:31:43","SEPA-23833"],["PERROT","Hugo","2025-10-04 13:39:03","SEPA-93307"],["LECLERC","Léa","2026-04-27 12:13:47","SEPA-67080"],["BOYER","Jade","2026-01-13 15:40:41","SEPA-95256"],["MARCHAND","Théo","2025-12-08 11:17:44","SEPA-80539"],["CHARPENTIER","Louis","2025-11-12 09:13:39","SEPA-70931"],["PERROT","Alice","2025-07-08 13:38:18","SEPA-45179"],["LEMAIRE","Nicolas","2025-06-30 06:51:49","SEPA-21359"],["MARCHAND","Inès","2025-12-10 14:55:05","SEPA-41963"],["BOURGEOIS","Inès","2026-05-12 11:22:05","SEPA-84691"],["BERTRAND","Sarah","2025-05-16 14:38:27","SEPA-54092"],["LEFEVRE","Louis","2025-09-08 09:07:02","SEPA-52600"],["BOYER","Louis","2026-04-07 09:19:56","SEPA-37802"],["FABRE","Manon","2026-03-06 08:33:28","SEPA-54608"],["MARCHAND","Théo","2025-11-27 13:28:54","SEPA-46211"],["PERRIN","Camille","2026-01-09 08:24:26","SEPA-77715"],["GARNIER","Sophie","2025-11-04 07:45:59","SEPA-41635"],["GAILLARD","Paul","2025-06-30 09:41:52","SEPA-74038"],["PERRIN","Nicolas","2026-05-08 13:30:00","SEPA-72402"],["NICOLAS","Louis","2026-05-08 13:47:07","SEPA-68743"],["LEFEVRE","Sophie","2026-02-20 14:51:23","SEPA-48566"],["ROBIN","Sarah","2026-02-15 13:40:48","SEPA-41890"],["DENIS","Alice","2025-10-14 14:52:01","SEPA-58368"],["MEYER","Nathan","2026-01-12 15:54:45","SEPA-79588"],["FABRE","Paul","2025-06-17 13:18:51","SEPA-82140"],["DUMONT","Hugo","2025-10-20 13:55:13","SEPA-69473"],["MARCHAND","Lucas","2025-12-02 08:24:55","SEPA-42951"],["ROBIN","Antoine","2025-11-06 09:59:47","SEPA-35242"],["LEMAIRE","Antoine","2026-01-29 13:30:27","SEPA-80236"],["BOURGEOIS","Thomas","2026-02-27 10:59:52","SEPA-35105"],["CHEVALIER","Louis","2025-09-10 14:44:47","SEPA-46241"],["GAILLARD","Alice","2025-11-24 11:11:23","SEPA-78765"],["RIVIERE","Lucas","2026-01-15 11:05:00","SEPA-23176"],["GARNIER","Lucas","2026-03-05 13:52:33","SEPA-39816"],["ROY","Thomas","2025-09-09 12:29:57","SEPA-49618"],["DURAND","Nathan","2026-06-04 07:00:14","SEPA-26591"],["MARCHAND","Julien","2025-07-16 07:47:19","SEPA-17146"],["PERRIN","Lucas","2025-07-16 07:24:35","SEPA-26551"],["ROCHE","Louis","2025-09-18 12:36:19","SEPA-23446"],["DURAND","Alice","2026-01-08 08:54:57","SEPA-47268"],["MEYER","Louis","2025-11-06 09:55:56","SEPA-67733"],["DUMONT","Thomas","2025-08-04 12:34:38","SEPA-16734"],["MASSON","Louis","2025-08-28 07:22:15","SEPA-24953"],["FONTAINE","Sarah","2026-05-08 14:40:58","SEPA-74454"],["FONTAINE","Alice","2025-10-23 07:51:16","SEPA-92502"],["ROUSSEL","Julien","2026-03-19 09:27:51","SEPA-29887"],["BLANC","Alice","2025-10-03 07:10:47","SEPA-49824"],["ROUSSEAU","Nicolas","2025-11-20 15:36:44","SEPA-25525"],["PERRIN","Paul","2025-12-12 08:27:54","SEPA-89471"],["RIVIERE","Théo","2025-10-30 13:53:19","SEPA-39581"],["CHARPENTIER","Jade","2025-11-04 09:17:41","SEPA-59856"],["RENARD","Inès","2025-08-19 10:49:48","SEPA-48974"],["LOUIS","Paul","2026-01-30 11:22:30","SEPA-50026"],["MOREL","Théo","2025-09-18 10:10:41","SEPA-17894"],["BERTRAND","Antoine","2025-12-10 08:38:17","SEPA-37235"],["ROCHE","Chloé","2026-03-16 13:35:42","SEPA-44687"],["HENRY","Sophie","2025-06-13 06:14:05","SEPA-30585"],["GAUTHIER","Thomas","2025-07-30 08:07:45","SEPA-82350"],["FONTAINE","Thomas","2026-02-09 09:25:21","SEPA-10350"],["BARRE","Inès","2025-12-15 11:54:29","SEPA-87832"],["MEYER","Lucas","2025-10-28 09:01:36","SEPA-14278"],["ROBIN","Lucas","2025-12-15 16:29:59","SEPA-47056"],["MATHIEU","Inès","2026-04-22 08:37:44","SEPA-19329"],["ROUSSEL","Nicolas","2026-01-14 14:51:37","SEPA-44675"],["ROCHE","Alice","2025-12-28 09:28:28","SEPA-96662"],["GARNIER","Paul","2025-09-21 15:02:46","SEPA-25043"],["ANTOINE","Nicolas","2025-06-16 16:19:20","SEPA-94886"],["BLANC","Manon","2025-10-01 07:20:47","SEPA-28643"],["FONTAINE","Julien","2026-05-02 07:44:39","SEPA-31747"],["DENIS","Théo","2026-02-20 14:54:38","SEPA-84607"],["DUVAL","Inès","2025-10-03 12:57:03","SEPA-26299"],["LECLERC","Lucas","2025-06-25 06:55:25","SEPA-62757"],["MARCHAND","Jade","2025-10-27 16:40:43","SEPA-80776"],["NOEL","Inès","2025-08-13 12:28:10","SEPA-20543"],["RIVIERE","Julien","2025-09-21 15:43:11","SEPA-66626"],["DAVID","Emma","2026-01-13 14:48:26","SEPA-89129"],["MASSON","Camille","2025-11-07 14:08:58","SEPA-21970"],["ROBIN","Alice","2025-11-19 15:36:20","SEPA-86955"],["LEFEVRE","Manon","2025-11-19 15:45:27","SEPA-85529"],["GIRARD","Thomas","2025-07-09 07:10:04","SEPA-71669"],["BRUN","Inès","2026-05-07 14:54:59","SEPA-46458"],["BOYER","Alice","2026-05-07 15:51:55","SEPA-67132"],["ROCHE","Louis","2026-05-07 16:10:31","SEPA-21959"],["MEYER","Hugo","2025-12-31 10:31:20","SEPA-63523"],["DUMONT","Emma","2026-01-13 10:13:50","SEPA-97835"],["VINCENT","Thomas","2026-02-10 16:23:33","SEPA-53228"],["BARRE","Louis","2025-12-04 17:40:54","SEPA-47777"],["HENRY","Sarah","2025-06-10 09:50:50","SEPA-82102"],["GIRARD","Inès","2026-02-11 16:15:57","SEPA-21542"],["LEMAIRE","Manon","2025-10-03 07:40:08","SEPA-52372"],["MULLER","Sarah","2025-10-06 08:23:27","SEPA-77449"],["DURAND","Nathan","2025-11-19 15:40:58","SEPA-70552"]];
+
+const arr={total:435,pon:54.7,sepa:52}; // k€ - export DÉMO
+let panier=[['Récurrent (annualisé)',3.2,C.rec],['Ponctuel',1.2,C.pon]];
+let clientsSeg=[['Contrats récurrents',136,C.rec],['Contrats ponctuels',47,C.pon]];
+const pareto=[['10%','39'],['25%','63'],['50%','85'],['100%','100']];
+let topClients=[];
+const heatData=[['Comptabilité',[.4,.5,.7,.3,1,.7,.5,.3,.6,.6,.5,.4]],['Fiscalité',[.3,.4,.8,.9,1,.6,.3,.2,.3,.3,.3,.5]],['Paie',[.6,.5,.5,.4,.6,.5,.5,.4,.7,.6,.5,.5]],['Juridique',[.7,.4,.5,.3,.5,.6,.8,.3,.4,.5,.4,.6]]];
+let funnel=[['Documents créés',381,C.info],['Envoyés',353,C.blue2],['Signés',183,C.green]];
+let aging=[];
+const waterfall=[['CA signé',30,'pos'],['Coût prod.',-13.5,'neg'],['Sous‑traitance',-2.1,'neg'],['Remises',-1.4,'neg'],['Marge brute',13,'tot']];
+const marges=[['Juridique',58,C.green],['Fiscalité',54,C.green],['Comptabilité',47,C.blue],['Exceptionnelle',41,C.blue2],['Paie',28,C.amber]];
+let sources=[];
+let presta=[['Comptabilité',16.4],['Fiscalité',2.4],['Juridique',1.8],['Social',1.2],['Gestion',0.2]];
+const formes=[['SAS',32.7],['SARL',19.9],['SCI',17.9],['EI',13.5],['SASU',7.1],['EURL',4.2]];
+let geo=[['Dijon',54],['Fenay',3.5],['Plombières-lès-Dijon',3.5],['Chenôve',2.8],['Brétigny',2.8],['Savigny-le-Sec',2.8]];
+const cross=[['SAS',[1,.8,.6,.3]],['SCI',[.9,.2,.7,.2]],['SARL',[1,.6,.5,.4]],['EI',[.7,.3,.2,.5]]], crossCols=['Compta','Paie','Fiscal.','Jurid.'];
+let modeles=[['Devis Compta BIC — 2025',88],['Prestations exceptionnelles',84],['Devis Compta BIC — 2026',48],['Social — paies & charges',33],['Devis SCI IS',27],['Loueur meublé IR / LMNP',20],['Devis Compta BNC — 2025',18],['Devis Compta BNC — 2026',16]];
+let bulletsSig=[['MARTIN Julien',211,200,260],['MOREAU Sophie',142,150,260],['DUBOIS Camille',88,120,260],['LEROY Antoine',48,80,260]];
+let bulletsResp=[['MARTIN Julien',246,240,300],['DUBOIS Camille',153,160,300],['LEROY Antoine',78,90,300],['MOREAU Sophie',13,40,300]];
+let bullets=bulletsSig, colDim='sig';
+let rankSig=[['MARTIN Julien',211.5,'49%',1],['MOREAU Sophie',142.0,'60%',2],['DUBOIS Camille',88.3,'39%',3],['LEROY Antoine',48.0,'48%',4]];
+let rankResp=[['MARTIN Julien',245.9,'48%',1],['DUBOIS Camille',153.4,'43%',2],['LEROY Antoine',77.7,'56%',3],['MOREAU Sophie',12.9,'60%',4]];
+let rank=rankSig;
+const ape=[['6831Z — Agences immobilières',92,'r',14],['4711B — Commerce de détail',78,'r',9],['9602A — Coiffure & soins',64,'o',22],['6201Z — Programmation info.',38,'g',31]];
+const labRank=[['MARTIN Julien',168,52],['DUBOIS Camille',103,61],['MOREAU Sophie',65,74],['LEROY Antoine',44,80]];
+const fmt=v=>(''+v).replace('.',',');
+
+/* generic helpers */
+function spark(d,c){const w=54,h=22,mn=Math.min(...d),mx=Math.max(...d);const p=d.map((v,i)=>`${i/(d.length-1)*w},${h-((v-mn)/(mx-mn||1))*(h-4)-2}`).join(' ');return `<svg class="spark" viewBox="0 0 ${w} ${h}"><polyline points="${p}" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round"/></svg>`;}
+function hbar(name,pct,color,inside,suffix){return `<div class="hbar"><span class="name">${name}</span><div class="track"><div class="fill" style="width:${pct}%;background:${color}">${inside||''}</div></div><span class="pct">${suffix||''}</span></div>`;}
+function donut(seg,total,cBig,cSub,cSmall,bigColor){const r=64,cx=88,cy=88,sw=27,c=2*Math.PI*r;let off=0,arcs='';
+ seg.forEach(s=>{const len=s[1]/total*c;arcs+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s[2]}" stroke-width="${sw}" stroke-dasharray="${Math.max(len-1.5,0)} ${c-Math.max(len-1.5,0)}" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})"/>`;off+=len;});
+ const svg=`<svg width="176" height="176" viewBox="0 0 176 176" font-family="Mulish,sans-serif">${arcs}<text x="${cx}" y="${cy-3}" text-anchor="middle" font-size="34" font-weight="800" fill="${bigColor||C.ink}">${cBig}</text><text x="${cx}" y="${cy+16}" text-anchor="middle" font-size="11" font-weight="600" fill="#737A86">${cSub}</text>${cSmall?`<text x="${cx}" y="${cy+33}" text-anchor="middle" font-size="12" font-weight="700" fill="#2A2F3A">${cSmall}</text>`:''}</svg>`;
+ const leg=seg.map(s=>`<div style="display:flex;align-items:center;gap:9px;font-size:12.5px;margin-bottom:9px"><i style="width:11px;height:11px;border-radius:3px;background:${s[2]};flex:none;display:inline-block"></i><span style="flex:1">${s[0]}</span><b>${typeof s[1]==='number'&&s[1]<100?fmt(s[1]):s[1]}</b></div>`).join('');
+ return `<div style="display:flex;align-items:center;gap:22px;flex-wrap:wrap;justify-content:center"><div>${svg}</div><div style="flex:1;min-width:170px">${leg}</div></div>`;}
+function cascade(data,max){const W=470,H=240,padT=30,padB=42,padX=14,gap=18,n=data.length,colW=(W-padX*2-gap*(n-1))/n,plotH=H-padT-padB,y=v=>padT+plotH*(1-v/max);
+ let cum=0,bars=[];data.forEach(d=>{let top,bot,color;if(d[2]==='pos'){bot=0;top=d[1];cum=d[1];color=C.blue;}else if(d[2]==='inc'){bot=cum;cum+=d[1];top=cum;color=C.green;}else if(d[2]==='neg'){top=cum;cum+=d[1];bot=cum;color=C.red;}else{bot=0;top=d[1];cum=d[1];color=C.green;}bars.push({top,bot,cum,color,val:d[1],label:d[0]});});
+ let s=`<svg width="100%" height="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" font-family="Mulish,sans-serif"><line x1="${padX}" y1="${y(0)}" x2="${W-padX}" y2="${y(0)}" stroke="#E4E6EC"/>`;
+ bars.forEach((b,i)=>{const x=padX+i*(colW+gap),yT=y(Math.max(b.top,b.bot)),h=Math.max(y(Math.min(b.top,b.bot))-yT,3);
+  if(i<bars.length-1){const yc=y(b.cum);s+=`<line x1="${x+colW}" y1="${yc}" x2="${x+colW+gap}" y2="${yc}" stroke="#9AA0AB" stroke-width="1.4" stroke-dasharray="3 3"/>`;}
+  s+=`<rect x="${x}" y="${yT}" width="${colW}" height="${h}" rx="4" fill="${b.color}"/><text x="${x+colW/2}" y="${yT-8}" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2A2F3A">${b.val<0?'−':''}${Math.abs(b.val)}k€</text><text x="${x+colW/2}" y="${H-padB+19}" text-anchor="middle" font-size="10" font-weight="600" fill="#737A86">${b.label}</text>`;});
+ return s+`</svg>`;}
+
+/* KPIs (réagissent au type de mission) */
+function caMonth(i){return miss==='rec'?caRec[i]:miss==='pon'?caPon[i]:caRec[i]+caPon[i];}
+function renderKPI(){
+ const k=[
+  {l:'Récurrent annualisé · signé',v:K.arr+'<small> k€</small>',d:'12 mois glissants',u:1,s:caRec,c:C.rec,hl:1},
+  {l:'Ponctuel · signé',v:fmt(K.pon)+'<small> k€</small>',d:'dont prestations except.',u:1,s:caPon,c:C.pon},
+  {l:'% du CA récurrent',v:K.pctRec+'<small>%</small>',d:'récurrent / total signé',u:1,s:[70,75,80,85,K.pctRec],c:C.rec},
+  {l:'Taux de transfo',v:K.transfo+'<small>%</small>',d:K.nSigned+' signés / '+K.nTotal,u:1,c:C.info},
+  {l:'Cycle de vente',v:K.cycle+'<small> j</small>',d:'création → signature',u:1,c:C.amber},
+  {l:'LAB en retard',v:'312',d:'à traiter · cabinet',u:0,alert:1,tap:1}];
+ document.getElementById('kpiGrid').innerHTML=k.map(x=>`<div class="kpi ${x.hl?'hl':''} ${x.alert?'alert':''} ${x.tap?'tap':''}" ${x.tap?"onclick=\"openDrill('lab')\"":''}><div class="lab">${x.l}</div><div class="val" style="${x.alert?'color:var(--red)':''}">${x.v}</div><div class="d ${x.u?'up':'down'}">${x.u?'▲':'▼'} ${x.d}</div>${x.s?spark(x.s,x.c):''}</div>`).join('');
+}
+function renderRpKpi(){
+ const k=[
+  {l:'Récurrent annualisé (signé)',v:K.arr+'<small> k€</small>',d:K.recC+' mensuels + '+K.annC+' annuels',c:C.rec},
+  {l:'Ponctuel (signé)',v:fmt(K.pon)+'<small> k€</small>',d:K.ponC+' contrats ponctuels',c:C.green},
+  {l:'% du CA récurrent',v:K.pctRec+'<small>%</small>',d:'du total signé',c:C.rec},
+  {l:'Mandats SEPA · cabinet',v:'52<small>%</small>',d:'96 / 183 signés · portefeuille',c:C.amber}];
+ document.getElementById('rpKpi').innerHTML=k.map(x=>`<div class="kpi hl"><div class="lab">${x.l}</div><div class="val">${x.v}</div><div class="d up">▲ ${x.d}</div></div>`).join('');
+}
+
+/* charts */
+let caChart,devisChart,paretoChart,forecastChart;
+function renderCa(){if(caChart)caChart.destroy();Chart.defaults.font.family="'Mulish',sans-serif";Chart.defaults.color=C.muted;
+ const sl=a=>a.slice(12-period);const ds=[];
+ if(miss!=='pon')ds.push({type:'bar',label:'Récurrent annualisé',data:sl(caRec),backgroundColor:C.rec,stack:'a',borderRadius:4});
+ if(miss!=='rec')ds.push({type:'bar',label:'Ponctuel',data:sl(caPon),backgroundColor:C.pon,stack:'a',borderRadius:4});
+ if(showCmp)ds.push({type:'line',label:'N‑1 (n/a)',data:sl(ca22),borderColor:'#9AA0AB',borderWidth:2,borderDash:[5,4],tension:.3,pointRadius:0});
+ caChart=new Chart(document.getElementById('caChart'),{data:{labels:sl(M),datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:11,usePointStyle:true,font:{size:11}}}},scales:{y:{stacked:true,grid:{color:'#EEF0F4'},title:{display:true,text:'k€ HT',font:{size:10}}},x:{stacked:true,grid:{display:false}}}}});}
+function renderDevis(){if(devisChart)devisChart.destroy();const sl=a=>a.slice(12-period);
+ const ds=[{type:'bar',label:'Récurrent annualisé',data:sl(caRec),backgroundColor:C.rec,stack:'a',borderRadius:4},{type:'bar',label:'Ponctuel',data:sl(caPon),backgroundColor:C.pon,stack:'a',borderRadius:4},{type:'line',label:'Nb de devis signés',data:sl(nbAll),borderColor:'#222',borderWidth:2.4,tension:.3,pointRadius:2.5,yAxisID:'y1'}];
+ if(showCmp)ds.push({type:'line',label:'N‑1 (n/a)',data:sl(ca22),borderColor:'#A9B4C9',borderWidth:2,borderDash:[5,4],tension:.3,pointRadius:0});
+ devisChart=new Chart(document.getElementById('devisChart'),{data:{labels:sl(M),datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom',labels:{boxWidth:11,usePointStyle:true,font:{size:11}}}},scales:{y:{stacked:true,grid:{color:'#EEF0F4'},title:{display:true,text:'k€ HT',font:{size:10}}},y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Nb devis',font:{size:10}}},x:{stacked:true,grid:{display:false}}}}});}
+function renderPareto(){if(paretoChart)paretoChart.destroy();
+ paretoChart=new Chart(document.getElementById('paretoChart'),{data:{labels:['Top 10%','Top 25%','Top 50%','100%'],datasets:[{type:'line',label:'% cumulé du CA',data:K.paretoCum,borderColor:C.red,backgroundColor:C.red,borderWidth:2.5,tension:.3,pointRadius:3},{type:'bar',label:'part du CA',data:K.paretoPart,backgroundColor:C.blue2,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:11,usePointStyle:true,font:{size:11}}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw+'%'}}},scales:{y:{max:100,grid:{color:'#EEF0F4'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}}});}
+
+/* bespoke renders */
+function renderHeat(){const mn=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];let h='<div></div>'+mn.map(m=>`<div class="hm">${m}</div>`).join('');heatData.forEach(r=>{h+=`<div class="hl">${r[0]}</div>`+r[1].map(v=>`<div class="cell" title="${Math.round(v*30)} devis" style="background:rgba(27,83,214,${(0.1+v*0.8).toFixed(2)});color:${v>0.5?'#fff':'#737A86'}">${Math.round(v*30)}</div>`).join('');});document.getElementById('heat').innerHTML=h;}
+function renderFunnel(){const mx=funnel[0][1];document.getElementById('funnel').innerHTML=funnel.map((f,i)=>{const w=42+f[1]/mx*58,dr=i>0?Math.round((1-f[1]/funnel[i-1][1])*100):0;return `<div><div class="fbar" style="width:${w}%;background:${f[2]}">${f[0]}<span class="m">${f[1]}</span></div>${i>0?`<span class="drop">−${dr}% vs étape précédente</span>`:''}</div>`;}).join('');}
+function renderAging(){document.getElementById('agingTbl').innerHTML=`<thead><tr><th>Prospect</th><th>Signataire</th><th class="num">k€</th><th class="num">Âge</th></tr></thead><tbody>`+aging.map(a=>`<tr style="cursor:pointer" onclick="openDrill('aging')"><td><b>${a[0]}</b></td><td>${a[1]}</td><td class="num">${fmt(a[3])}</td><td class="num"><span class="pill ${a[5]}">${a[4]} j</span></td></tr>`).join('')+`</tbody>`;}
+function renderWaterfall(){document.getElementById('waterfall').innerHTML=`<div style="height:228px">${cascade(waterfall,30)}</div>`;}
+function renderMarges(){document.getElementById('margeBars').innerHTML=marges.map(m=>hbar(m[0],m[1],m[2],m[1]+'%','')).join('');}
+function renderSources(){const mx=Math.max(...sources.map(s=>s[1]));document.getElementById('sourcesBars').innerHTML=sources.map(s=>{const c=s[2]>=70?C.green:s[2]>=60?C.blue:C.amber;return `<div class="hbar"><span class="name">${s[0]}</span><div class="track"><div class="fill" style="width:${s[1]/mx*100}%;background:${c}">${s[1]}%</div></div><span class="pct">${s[2]}% <small style="color:var(--faint)">tr.</small></span></div>`;}).join('');}
+function renderPresta(){const mx=presta[0][1];document.getElementById('prestaBars').innerHTML=presta.map((p,i)=>hbar(p[0],p[1]/mx*100,i===0?C.blue:C.blue2,fmt(p[1])+' k€','')).join('');}
+function renderForm(){const mx=formes[0][1];document.getElementById('formesBars').innerHTML=formes.map(f=>hbar(f[0],f[1]/mx*100,C.blue,f[1]+'%','')).join('');}
+function renderGeo(){const mx=geo[0][1];document.getElementById('geoBars').innerHTML=geo.map(g=>hbar(g[0],g[1]/mx*100,C.info,g[1]+'%','')).join('');}
+function renderCross(){let h='<div></div>'+crossCols.map(c=>`<div style="font-weight:700;color:var(--muted);text-align:center;font-size:10px;padding:4px">${c}</div>`).join('');cross.forEach(r=>{h+=`<div style="font-weight:700;color:var(--muted);display:flex;align-items:center">${r[0]}</div>`+r[1].map(v=>`<div style="aspect-ratio:2.3;border-radius:5px;display:grid;place-items:center;font-weight:700;background:rgba(27,83,214,${.08+v*.6});color:${v>.6?'#fff':C.ink}">${Math.round(v*100)}</div>`).join('');});document.getElementById('cross').innerHTML=h;}
+function renderModeles(){const mx=modeles[0][1];document.getElementById('modelesBars').innerHTML=modeles.map((m,i)=>`<div style="display:grid;grid-template-columns:248px 1fr 54px;align-items:center;gap:11px;font-size:12px;margin-bottom:7px"><span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${m[0]}">${m[0]}</span><div style="height:17px;background:var(--bluePale);border-radius:4px;overflow:hidden"><div style="height:100%;border-radius:4px;width:${m[1]/mx*100}%;background:${i<3?C.blue:C.blue2}"></div></div><span style="text-align:right;color:var(--muted);font-weight:600">${m[1]}</span></div>`).join('');}
+function setColDim(d){colDim=d;rank=d==='resp'?rankResp:rankSig;bullets=d==='resp'?bulletsResp:bulletsSig;document.querySelectorAll('#colDimSeg button').forEach(b=>b.classList.toggle('on',b.dataset.d===d));const sc=document.getElementById('objScope');if(sc)sc.textContent=(d==='resp'?'Responsable':'Signataire')+' · agrégé tous sites — 1 ligne par personne';renderBullets();renderRank();}
+function renderBullets(){document.getElementById('bullets').innerHTML=bullets.map(b=>{const fp=b[1]/b[3]*100,tp=b[2]/b[3]*100,ok=b[1]>=b[2];return `<div class="bullet"><div class="t"><b>${b[0]}</b><span class="v">${b[1]} / ${b[2]} k€ ${ok?'<span class="up">✓</span>':''}</span></div><div class="btrack"><div class="bfill" style="width:${fp}%;background:${ok?C.green:C.ink}"></div><div class="btarget" style="left:${tp}%"></div></div></div>`;}).join('');}
+function renderRank(){document.getElementById('rankTbl').innerHTML=`<thead><tr><th>#</th><th>Collaborateur</th><th class="num">CA k€</th><th class="num">Transfo</th></tr></thead><tbody>`+rank.map(r=>`<tr><td><b>${r[3]}</b></td><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num"><span class="pill ${parseInt(r[2])>=65?'g':parseInt(r[2])>=55?'o':'r'}">${r[2]}</span></td></tr>`).join('')+`</tbody>`;}
+function renderGauge(){const pct=64,r=46,c=2*Math.PI*r,off=c*(1-pct/100);document.getElementById('gauge').innerHTML=`<svg width="124" height="124" viewBox="0 0 120 120"><circle cx="60" cy="60" r="${r}" fill="none" stroke="#EEF0F4" stroke-width="13"/><circle cx="60" cy="60" r="${r}" fill="none" stroke="${C.amber}" stroke-width="13" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 60 60)"/><text x="60" y="56" text-anchor="middle" font-size="27" font-weight="800" fill="${C.ink}" font-family="Mulish">64%</text><text x="60" y="74" text-anchor="middle" font-size="10" fill="${C.muted}" font-family="Mulish">renforcée</text></svg>`;}
+function renderAlertTbl(){document.getElementById('alertTbl').innerHTML=`<thead><tr><th>Client</th><th>Vigilance</th><th class="num">Score</th><th class="num">Retard</th><th>Resp.</th></tr></thead><tbody>`+[['SAS Verlaine','Renforcée',92,'+47 j','T.Roche','r'],['SCI Patrimoine 67','Renforcée',88,'+39 j','M.Lefèvre','r'],['SARL Atlas','Renforcée',78,'+31 j','K.Haddad','o'],['EURL Soleil','Standard',64,'+22 j','S.Bauer','o']].map(r=>`<tr><td><b>${r[0]}</b></td><td><span class="pill ${r[1]==='Renforcée'?'o':'g'}">${r[1]}</span></td><td class="num">${r[2]}</td><td class="num"><span class="pill ${r[5]}">${r[3]}</span></td><td>${r[4]}</td></tr>`).join('')+`</tbody>`;}
+function renderApe(){document.getElementById('apeTbl').innerHTML=`<thead><tr><th>Code APE</th><th class="num">Score</th><th class="num">À traiter</th></tr></thead><tbody>`+ape.map(a=>`<tr><td>${a[0]}</td><td class="num"><span class="pill ${a[2]}">${a[1]}</span></td><td class="num">${a[3]}</td></tr>`).join('')+`</tbody>`;}
+function renderLabRank(){document.getElementById('labRankTbl').innerHTML=`<thead><tr><th>Collaborateur</th><th class="num">Dossiers</th><th class="num">À jour</th></tr></thead><tbody>`+labRank.map(r=>`<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num"><span class="pill ${r[2]>=80?'g':r[2]>=60?'o':'r'}">${r[2]}%</span></td></tr>`).join('')+`</tbody>`;}
+/* recpon + portefeuille */
+function renderMix(){const p=Math.round(K.pon),t=K.arr+p;document.getElementById('mixDonut').innerHTML=donut([['Récurrent annualisé',K.arr,C.rec],['Ponctuel',p,C.pon]],t,K.pctRec+'%','récurrent',K.arr+' k€ / '+t+' k€',C.rec);}
+function renderArr(){const d=[['Mensuelle',K.recC,C.rec],['Ponctuelle',K.ponC,C.pon],['Annuelle',K.annC,C.blue2]];const mx=Math.max(1,...d.map(x=>x[1]));document.getElementById('arrBridge').innerHTML=d.map(x=>hbar(x[0],x[1]/mx*100,x[2],x[1]+' contrats','')).join('');}
+function renderForecast(){if(forecastChart)forecastChart.destroy();const recL='#9DB8EE',ponL='#F0D399';
+ forecastChart=new Chart(document.getElementById('forecastChart'),{data:{labels:['12 mois réalisés','12 mois prévisionnels'],datasets:[
+  {type:'bar',label:'Récurrent annualisé',data:[K.arr,Math.round(K.arr*1.08)],backgroundColor:[C.rec,recL],stack:'a',borderRadius:4},
+  {type:'bar',label:'Ponctuel',data:[Math.round(K.pon),Math.round(K.pon)],backgroundColor:[C.pon,ponL],stack:'a',borderRadius:4},
+  {type:'line',label:'Objectif',data:[null,Math.round((K.arr+K.pon)*1.15)],borderColor:C.red,backgroundColor:C.red,pointStyle:'triangle',pointRadius:10,showLine:false}
+ ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:11,usePointStyle:true,font:{size:11}}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw+' k€'}}},scales:{y:{stacked:true,grid:{color:'#EEF0F4'},title:{display:true,text:'CA annuel (k€)',font:{size:10}}},x:{stacked:true,grid:{display:false}}}}});}
+function renderPanier(){const mx=Math.max(...panier.map(p=>p[1]));document.getElementById('panierBars').innerHTML=panier.map(p=>hbar(p[0],p[1]/mx*100,p[2],fmt(p[1])+' k€','')).join('');}
+function renderClients(){const t=(clientsSeg[0][1]+clientsSeg[1][1])||1;document.getElementById('clientDonut').innerHTML=donut(clientsSeg,t,K.clientPctRec+'%','récurrents',clientsSeg[0][1]+' / '+t+' signés',C.rec);}
+function renderTopClients(){document.getElementById('topClients').innerHTML=`<thead><tr><th>Client</th><th>Type</th><th>Prestations</th><th class="num">CA annuel</th></tr></thead><tbody>`+topClients.map(t=>`<tr><td><b>${t[0]}</b></td><td><span class="pill ${t[1]}">${t[1]==='rec'?'Récurrent':'Ponctuel'}</span></td><td style="color:var(--muted)">${t[3]}</td><td class="num">${fmt(t[2])} k€</td></tr>`).join('')+`</tbody>`;}
+
+/* drilldown */
+const drills={
+ lab:{title:'Dossiers LAB prioritaires — délai dépassé',body:`<p style="color:var(--muted);margin-bottom:12px">312 dossiers hors délai, triés par risque.</p><table class="tbl"><thead><tr><th>Client</th><th>Vigilance</th><th class="num">Score</th><th class="num">Retard</th></tr></thead><tbody>${[['SAS Verlaine','Renforcée',92,'+47 j','r'],['SCI Patrimoine 67','Renforcée',88,'+39 j','r'],['SARL Atlas','Renforcée',78,'+31 j','o']].map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td class="num">${r[2]}</td><td class="num"><span class="pill ${r[4]}">${r[3]}</span></td></tr>`).join('')}</tbody></table>`},
+ aging:{title:'Devis en attente — à relancer',body:`<p style="color:var(--muted);margin-bottom:12px">18 devis non signés · 47 k€ pondérés.</p><table class="tbl"><thead><tr><th>Prospect</th><th>Resp.</th><th class="num">k€</th><th class="num">Âge</th></tr></thead><tbody>${aging.map(a=>`<tr><td><b>${a[0]}</b></td><td>${a[2]}</td><td class="num">${fmt(a[3])}</td><td class="num"><span class="pill ${a[5]}">${a[4]} j</span></td></tr>`).join('')}</tbody></table>`},
+ conv:{title:'Clients ponctuels à fort potentiel récurrent',body:`<p style="color:var(--muted);margin-bottom:12px">Clients arrivés sur une mission ponctuelle, candidats à une lettre de mission annuelle.</p><table class="tbl"><thead><tr><th>Client</th><th>Mission initiale</th><th>Reco</th><th class="num">CA potentiel</th></tr></thead><tbody>${[['EI Durand','Création','Compta annuelle','3,6 k€/an'],['SAS Helios','Conseil ponctuel','Compta + Social','5,2 k€/an'],['SCI Bréa','Mission exceptionnelle','Compta + Fiscalité','2,8 k€/an']].map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td style="color:var(--blue);font-weight:600">${r[2]}</td><td class="num">${r[3]}</td></tr>`).join('')}</tbody></table>`}
+};
+function openDrill(k){const d=drills[k];document.getElementById('modalTitle').textContent=d.title;document.getElementById('modalBody').innerHTML=d.body;document.getElementById('overlay').classList.add('show');}
+
+/* tabs */
+const done={};
+function showPanel(t){document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.dataset.p===t));
+ if(t==='synthese'&&!done.ca){renderCa();done.ca=1;}
+ if(t==='activite'&&!done.dv){renderDevis();done.dv=1;}
+ if(t==='recpon'&&!done.fc){renderForecast();done.fc=1;}
+ if(t==='portefeuille'&&!done.pa){renderPareto();done.pa=1;}
+ if(t==='lab_vig'&&!done.vig){initVig();done.vig=1;}
+ if(t==='lab_carto'&&!done.carto){cartoDraw('global');done.carto=1;}
+ [caChart,devisChart,paretoChart,forecastChart,vigChartInst,cRadarInst,cBarInst].forEach(c=>c&&c.resize());}
+function bind(id){document.querySelectorAll('#'+id+' .stab').forEach(s=>s.onclick=()=>{document.querySelectorAll('#'+id+' .stab').forEach(x=>x.classList.remove('on'));s.classList.add('on');showPanel(s.dataset.t);});}
+bind('stabsStat');bind('stabsLab');
+function setPrimary(p){document.querySelectorAll('.ptab').forEach(t=>t.classList.toggle('on',t.dataset.pt===p));document.getElementById('stabsStat').style.display=p==='stat'?'flex':'none';document.getElementById('stabsLab').style.display=p==='lab'?'flex':'none';var ln=document.getElementById('labNote');if(ln)ln.style.display=p==='lab'?'flex':'none';var sb2=document.getElementById('scopeBar');if(sb2)sb2.style.display=p==='lab'?'none':'flex';const id=p==='stat'?'stabsStat':'stabsLab';document.querySelectorAll('#'+id+' .stab').forEach((x,i)=>x.classList.toggle('on',i===0));showPanel(document.querySelector('#'+id+' .stab').dataset.t);}
+function toggleCmp(){showCmp=!showCmp;document.querySelector('#cmpBtn .sw').classList.toggle('on',showCmp);if(done.ca)renderCa();if(done.dv)renderDevis();}
+function setMiss(m){miss=m;document.querySelectorAll('#missSeg button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));renderKPI();if(done.ca)renderCa();if(done.dv)renderDevis();}
+function toggleTest(){const sw=document.getElementById('testSw');sw.classList.toggle('on');const on=sw.classList.contains('on');document.getElementById('exL').style.fontWeight=on?'500':'700';document.getElementById('inL').style.fontWeight=on?'700':'500';}
+document.getElementById('period').onchange=function(){period=+this.value;if(done.ca)renderCa();if(done.dv)renderDevis();};
+
+/* ---- export Excel / CSV (toutes les sections) ---- */
+function exportSheets(){
+ var rows=filterRows();
+ var etatL=['Non envoyé','Envoyé','Signé'];
+ var perL={m:'mensuelle',a:'annuelle',p:'ponctuelle'};
+ var detHead=['ID','Société','Responsable','Signataire','Site','État','Périodicité','Total ponctuel','Total mensuel','Comptabilité','Social','Juridique','Fiscalité','Gestion','Modèle de devis','Origine prospect','Ville','Mois de signature'];
+ var detail=[detHead].concat(rows.map(function(r,i){return [i+1,r[0],r[1],r[2],r[18],etatL[r[4]],perL[r[5]]||'',r[6],r[7],r[8],r[9],r[10],r[11],r[12],r[13],r[14],r[15],(r[16]>=0?M[r[16]]:'')];}));
+ var cabHead=['Date','Brouillon','Envoyé','Rejeté','Non signés','Signés','Total HT Non signés','Total HT signés'];
+ return [
+  {name:'Detail',aoa:detail},
+  {name:'SEPA',aoa:[['Nom','Prénom','Signé le','ID']].concat(NATIVE_SEPA)},
+  {name:'Cabinet Démo',aoa:[cabHead].concat(NATIVE_CAB)},
+  {name:'Site Démo',aoa:[cabHead].concat(NATIVE_CAB)}
+ ];
+}
+function closeExp(){const m=document.getElementById('expMenu');if(m)m.classList.remove('show');}
+function toXLSX(){closeExp();try{
+  if(!window.XLSX){alert('Module Excel non chargé (vérifier la connexion).');return;}
+  const wb=XLSX.utils.book_new();
+  exportSheets().forEach(s=>{const ws=XLSX.utils.aoa_to_sheet(s.aoa);XLSX.utils.book_append_sheet(wb,ws,s.name.slice(0,31));});
+  XLSX.writeFile(wb,'export-tableau-de-bord-magma.xlsx');
+ }catch(e){alert('Export bloqué dans l’aperçu. Ouvrez le fichier HTML directement pour télécharger.');}}
+function toCSV(){closeExp();try{
+  const esc=v=>{v=(v==null?'':''+v);return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  let out='\uFEFF';
+  exportSheets().forEach(s=>{out+='## '+s.name+'\n'+s.aoa.map(r=>r.map(esc).join(';')).join('\n')+'\n\n';});
+  const blob=new Blob([out],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='export-tableau-de-bord-magma.csv';document.body.appendChild(a);a.click();a.remove();
+ }catch(e){alert('Export bloqué dans l’aperçu. Ouvrez le fichier HTML directement pour télécharger.');}}
+document.addEventListener('click',e=>{if(!e.target.closest('#expWrap'))closeExp();});
+
+/* ---- LAB : Cartographie LBC-FT (intégré du projet) ---- */
+let vigChartInst=null,cRadarInst=null,cBarInst=null;
+function initVig(){if(vigChartInst)return;vigChartInst=new Chart(document.getElementById('vigChart').getContext('2d'),{type:'doughnut',data:{datasets:[{data:[175,114],backgroundColor:['#e74c3c','#22c55e'],borderWidth:0,hoverOffset:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.label+': '+c.raw}}}}});}
+const CD={
+  global:{
+    sub:'Portefeuille global · 289 dossiers validés · Clôture 31/12/2025',
+    k:[{v:289,l:'Dossiers LAB validés',m:'sur 636 prospects actifs',c:'#1B3A8C',b:'#1B3A8C'},{v:175,l:'Vigilance renforcée',m:'61% du portefeuille',c:'#e74c3c',b:'#e74c3c'},{v:114,l:'Vigilance standard',m:'39% du portefeuille',c:'#16a34a',b:'#4ade80'},{v:12,l:'Opérations atypiques',m:'4 soupçons confirmés',c:'#d97706',b:'#d97706'}],
+    dims:[{code:'D1',name:'Caractéristiques clients',score:42,n:121},{code:'D2',name:'Activités sensibles (APE)',score:68,n:197},{code:'D3',name:'Localisation géo.',score:31,n:90},{code:'D4',name:'Nature des missions',score:55,n:159},{code:'D5',name:'Opérations particulières',score:18,n:52}],
+    radar:[42,68,31,55,18],
+    bar:{l:['J. Martin','C. Dubois','S. Moreau','A. Leroy'],r:[62,58,34,21],s:[38,27,28,15]},
+    ape:[{l:'47.26Z – Buraliste',p:100,n:8},{l:'68.2B – Location immo.',p:92,n:24},{l:'56.10A – Restauration',p:88,n:31},{l:'41.20A – BTP',p:85,n:18},{l:'45.11Z – Véhicules occ.',p:78,n:12},{l:'46.90Z – Commerce gros',p:71,n:19}],
+    ope:[{nm:'Transaction immobilière atypique',dt:'03/2026',s:'levé'},{nm:'Virement étranger non justifié',dt:'01/2026',s:'confirmé'},{nm:'Apport compte courant >100k€',dt:'02/2026',s:'levé'},{nm:'Crypto-actif — origine fonds',dt:'03/2026',s:'confirmé'},{nm:'Paiement espèces >10k€',dt:'01/2026',s:'en cours'}],
+    sigs:[{i:'JM',nm:'J. Martin',bg:'#B5D4F4',tc:'#0C447C',t:100,r:62,s:38,lv:'renforcée'},{i:'CD',nm:'C. Dubois',bg:'#9FE1CB',tc:'#085041',t:85,r:58,s:27,lv:'renforcée'},{i:'SM',nm:'S. Moreau',bg:'#FAC775',tc:'#633806',t:62,r:34,s:28,lv:'modérée'},{i:'AL',nm:'A. Leroy',bg:'#F5C4B3',tc:'#712B13',t:36,r:21,s:15,lv:'standard'}]
+  },
+  marot:{sub:'J. Martin · 100 dossiers · Signataire lettre de mission',k:[{v:100,l:'Dossiers LAB validés',m:'sur 148 prospects suivis',c:'#1B3A8C',b:'#1B3A8C'},{v:62,l:'Vigilance renforcée',m:'62% du portefeuille',c:'#e74c3c',b:'#e74c3c'},{v:38,l:'Vigilance standard',m:'38% du portefeuille',c:'#16a34a',b:'#4ade80'},{v:5,l:'Opérations atypiques',m:'2 soupçons confirmés',c:'#d97706',b:'#d97706'}],dims:[{code:'D1',name:'Caractéristiques clients',score:48,n:48},{code:'D2',name:'Activités sensibles (APE)',score:74,n:74},{code:'D3',name:'Localisation géo.',score:35,n:35},{code:'D4',name:'Nature des missions',score:61,n:61},{code:'D5',name:'Opérations particulières',score:22,n:22}],radar:[48,74,35,61,22],bar:{l:['J. Martin'],r:[62],s:[38]},ape:[{l:'56.10A – Restauration',p:91,n:14},{l:'41.20A – BTP',p:87,n:9},{l:'68.2B – Location immo.',p:85,n:11},{l:'47.26Z – Buraliste',p:100,n:4}],ope:[{nm:'Virement étranger non justifié',dt:'01/2026',s:'confirmé'},{nm:'Crypto-actif — origine fonds',dt:'03/2026',s:'confirmé'},{nm:'Apport compte courant >100k€',dt:'02/2026',s:'levé'}],sigs:[{i:'JM',nm:'J. Martin',bg:'#B5D4F4',tc:'#0C447C',t:100,r:62,s:38,lv:'renforcée'}]},
+  klein:{sub:'C. Dubois · 85 dossiers · Signataire lettre de mission',k:[{v:85,l:'Dossiers LAB validés',m:'sur 120 prospects suivis',c:'#1B3A8C',b:'#1B3A8C'},{v:58,l:'Vigilance renforcée',m:'68% du portefeuille',c:'#e74c3c',b:'#e74c3c'},{v:27,l:'Vigilance standard',m:'32% du portefeuille',c:'#16a34a',b:'#4ade80'},{v:4,l:'Opérations atypiques',m:'1 soupçon confirmé',c:'#d97706',b:'#d97706'}],dims:[{code:'D1',name:'Caractéristiques clients',score:45,n:38},{code:'D2',name:'Activités sensibles (APE)',score:72,n:61},{code:'D3',name:'Localisation géo.',score:29,n:25},{code:'D4',name:'Nature des missions',score:58,n:49},{code:'D5',name:'Opérations particulières',score:14,n:12}],radar:[45,72,29,58,14],bar:{l:['C. Dubois'],r:[58],s:[27]},ape:[{l:'68.2B – Location immo.',p:95,n:8},{l:'47.26Z – Buraliste',p:100,n:3},{l:'46.90Z – Commerce gros',p:79,n:11}],ope:[{nm:'Transaction immobilière atypique',dt:'03/2026',s:'levé'},{nm:'Paiement espèces >10k€',dt:'01/2026',s:'en cours'}],sigs:[{i:'CD',nm:'C. Dubois',bg:'#9FE1CB',tc:'#085041',t:85,r:58,s:27,lv:'renforcée'}]},
+  chen:{sub:'S. Moreau · 62 dossiers · Signataire lettre de mission',k:[{v:62,l:'Dossiers LAB validés',m:'sur 98 prospects suivis',c:'#1B3A8C',b:'#1B3A8C'},{v:34,l:'Vigilance renforcée',m:'55% du portefeuille',c:'#e74c3c',b:'#e74c3c'},{v:28,l:'Vigilance standard',m:'45% du portefeuille',c:'#16a34a',b:'#4ade80'},{v:2,l:'Opérations atypiques',m:'1 soupçon confirmé',c:'#d97706',b:'#d97706'}],dims:[{code:'D1',name:'Caractéristiques clients',score:35,n:22},{code:'D2',name:'Activités sensibles (APE)',score:58,n:36},{code:'D3',name:'Localisation géo.',score:28,n:17},{code:'D4',name:'Nature des missions',score:44,n:27},{code:'D5',name:'Opérations particulières',score:12,n:7}],radar:[35,58,28,44,12],bar:{l:['S. Moreau'],r:[34],s:[28]},ape:[{l:'56.10A – Restauration',p:83,n:10},{l:'45.11Z – Véhicules occ.',p:72,n:8}],ope:[{nm:'Apport compte courant atypique',dt:'03/2026',s:'confirmé'}],sigs:[{i:'SM',nm:'S. Moreau',bg:'#FAC775',tc:'#633806',t:62,r:34,s:28,lv:'modérée'}]},
+  dupont:{sub:'A. Leroy · 36 dossiers · Signataire lettre de mission',k:[{v:36,l:'Dossiers LAB validés',m:'sur 60 prospects suivis',c:'#1B3A8C',b:'#1B3A8C'},{v:21,l:'Vigilance renforcée',m:'58% du portefeuille',c:'#e74c3c',b:'#e74c3c'},{v:15,l:'Vigilance standard',m:'42% du portefeuille',c:'#16a34a',b:'#4ade80'},{v:1,l:'Opérations atypiques',m:'0 soupçon confirmé',c:'#d97706',b:'#d97706'}],dims:[{code:'D1',name:'Caractéristiques clients',score:28,n:10},{code:'D2',name:'Activités sensibles (APE)',score:52,n:19},{code:'D3',name:'Localisation géo.',score:22,n:8},{code:'D4',name:'Nature des missions',score:41,n:15},{code:'D5',name:'Opérations particulières',score:8,n:3}],radar:[28,52,22,41,8],bar:{l:['A. Leroy'],r:[21],s:[15]},ape:[{l:'41.20A – BTP',p:71,n:5},{l:'46.90Z – Commerce gros',p:67,n:6}],ope:[{nm:'Emprunt conditions inhabituelles',dt:'02/2026',s:'en cours'}],sigs:[{i:'AL',nm:'A. Leroy',bg:'#F5C4B3',tc:'#712B13',t:36,r:21,s:15,lv:'standard'}]}
+};
+function ri(score){if(score>=65)return{l:'Élevé',fc:'#e74c3c',tc:'#b91c1c',bg:'#fecaca'};if(score>=40)return{l:'Modéré',fc:'#f59e0b',tc:'#92400e',bg:'#fef3c7'};return{l:'Faible',fc:'#22c55e',tc:'#166534',bg:'#dcfce7'};}
+function cartoDraw(key){
+  const d=CD[key]||CD.global;
+  document.getElementById('carto-sub').textContent=d.sub;
+  document.getElementById('c-kpis').innerHTML=d.k.map(k=>`<div class="ck" style="border-top-color:${k.b}"><div class="ck-label">${k.l}</div><div class="ck-val" style="color:${k.c}">${k.v}</div><div class="ck-meta">${k.m}</div></div>`).join('');
+  document.getElementById('c-dims').innerHTML=d.dims.map(dim=>{const r=ri(dim.score);return `<div class="cd"><div class="cd-code">${dim.code}</div><div class="cd-name">${dim.name}</div><div class="cd-score" style="color:${r.fc}">${dim.score}<span style="font-size:11px;font-weight:400;color:#aaa">%</span></div><span class="cd-pill" style="background:${r.bg};color:${r.tc}">${r.l}</span><div class="cd-n">${dim.n} dossiers</div><div class="cd-bar" style="background:${r.bg}"><div class="cd-bar-fill" style="width:${dim.score}%;background:${r.fc}"></div></div></div>`;}).join('');
+  document.getElementById('c-ape').innerHTML=d.ape.map(a=>{const c=a.p>=90?'#e74c3c':a.p>=75?'#f59e0b':'#22c55e';return `<div class="carto-ape-row"><div class="carto-ape-lbl" title="${a.l}">${a.l}</div><div class="carto-ape-track"><div class="carto-ape-fill" style="width:${a.p}%;background:${c}"></div></div><div class="carto-ape-pct" style="color:${c}">${a.p}%</div><div class="carto-ape-n">${a.n} dos.</div></div>`;}).join('');
+  document.getElementById('c-ope').innerHTML=d.ope.map(o=>{const[bg,fg]=o.s==='confirmé'?['#fecaca','#b91c1c']:o.s==='levé'?['#dcfce7','#15803d']:['#fef3c7','#92400e'];return `<div class="ope-item"><div><div class="ope-nm">${o.nm}</div><div class="ope-dt">${o.dt}</div></div><span class="ope-tag" style="background:${bg};color:${fg}">${o.s}</span></div>`;}).join('');
+  document.getElementById('c-sigs').innerHTML=d.sigs.map(s=>{const pct=Math.round(s.r/s.t*100);const[bg,fg]=s.lv==='renforcée'?['#fecaca','#b91c1c']:s.lv==='modérée'?['#fef3c7','#92400e']:['#dcfce7','#15803d'];return `<tr><td><div class="sig-cell"><div class="sig-av" style="background:${s.bg};color:${s.tc}">${s.i}</div><div><div class="sig-nm">${s.nm}</div><div class="sig-role">Signataire LM</div></div></div></td><td style="font-weight:600">${s.t}</td><td style="font-weight:600;color:#e74c3c">${s.r}</td><td style="font-weight:600;color:#16a34a">${s.s}</td><td><div class="mini-bar-wrap"><div class="mini-bar-fill" style="width:${pct}%"></div></div><div style="font-size:10px;color:#aaa;margin-top:2px">${pct}% renforcés</div></td><td><span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:${bg};color:${fg}">${s.lv}</span></td></tr>`;}).join('');
+  if(cRadarInst)cRadarInst.destroy();
+  cRadarInst=new Chart(document.getElementById('cRadar').getContext('2d'),{type:'radar',data:{labels:['D1','D2','D3','D4','D5'],datasets:[{label:'Score',data:d.radar,borderColor:'#1B3A8C',backgroundColor:'rgba(27,58,140,0.08)',borderWidth:2,pointBackgroundColor:'#1B3A8C',pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{r:{min:0,max:100,ticks:{stepSize:25,font:{size:9},color:'#aaa',backdropColor:'transparent'},grid:{color:'rgba(0,0,0,0.08)'},pointLabels:{font:{size:10,weight:'600'},color:'#555'},angleLines:{color:'rgba(0,0,0,0.08)'}}}}});
+  if(cBarInst)cBarInst.destroy();
+  cBarInst=new Chart(document.getElementById('cBar').getContext('2d'),{type:'bar',data:{labels:d.bar.l,datasets:[{label:'Renforcée',data:d.bar.r,backgroundColor:'#e74c3c',borderRadius:3,barPercentage:.6},{label:'Standard',data:d.bar.s,backgroundColor:'#4ade80',borderRadius:3,barPercentage:.6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:11},color:'#888'}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:10},color:'#888'},beginAtZero:true}}}});
+}
+
+/* ===== Moteur de filtrage Site x Collaborateur (recalcul dynamique) ===== */
+const PERSONAS={
+ admin:{label:'Admin cabinet',role:'admin',name:null,sites:['Dijon','Lyon'],vis:'site'},
+ charb:{label:'J. Martin — Manager',role:'standard',name:'MARTIN Julien',sites:['Dijon','Lyon'],vis:'site'},
+ pannier:{label:'C. Dubois — Collaboratrice',role:'standard',name:'DUBOIS Camille',sites:['Dijon','Lyon'],vis:'resp'},
+ dubost:{label:'A. Leroy — Collaborateur',role:'standard',name:'LEROY Antoine',sites:['Dijon'],vis:'resp'},
+ lyon:{label:'Resp. site Lyon',role:'standard',name:null,sites:['Lyon'],vis:'site'}
+};
+let viewer=PERSONAS.admin;
+function scopeRows(){return ROWS.filter(function(r){
+ if(viewer.role!=='admin' && viewer.sites.indexOf(r[18])<0) return false;
+ if(viewer.role==='standard' && viewer.vis==='resp' && r[1]!==viewer.name) return false;
+ return true;});}
+function scopeText(){
+ if(viewer.role==='admin') return "Admin cabinet · tous les sites · toute l'interface";
+ var m=viewer.vis==='resp'?'Responsable dossier (ses dossiers)':'Site entier (tous les dossiers du/des site(s))';
+ return viewer.label+' · sites '+viewer.sites.join(' + ')+' · mode « '+m+' »';}
+function populateFilters(){
+ var sites=viewer.role==='admin'?['Dijon','Lyon']:viewer.sites;
+ var ss=document.getElementById('fSite');
+ ss.innerHTML='<option value="all">'+(viewer.role==='admin'?'Tous les sites':(sites.length>1?'Tous mes sites':sites[0]))+'</option>'+sites.map(function(x){return '<option value="'+x+'">'+x+(x==='Lyon'?' (synthétique)':'')+'</option>';}).join('');
+ var cs=document.getElementById('fCol');
+ if(viewer.role==='standard'&&viewer.vis==='resp'){
+   cs.innerHTML='<option value="all">'+viewer.name+' (vous)</option>'; cs.disabled=true;
+ }else{
+   var names=[]; scopeRows().forEach(function(r){if(names.indexOf(r[1])<0)names.push(r[1]);}); names.sort();
+   cs.innerHTML='<option value="all">Tous</option>'+names.map(function(n){return '<option>'+n+'</option>';}).join(''); cs.disabled=false;
+ }
+ var sf=ss.closest('.field'); if(sf)sf.style.display=(sites.length<2?'none':'');
+ fSite='all'; fCol='all';}
+function setViewer(key){viewer=PERSONAS[key]||PERSONAS.admin;populateFilters();var b=document.getElementById('scopeBanner');if(b)b.textContent=scopeText();recompute();}
+function filterRows(){return scopeRows().filter(function(r){return (fSite==='all'||r[18]===fSite)&&(fCol==='all'||r[1]===fCol);});}
+function sum(a){return a.reduce((x,y)=>x+y,0);}
+function computeAll(rows){
+ const sig=rows.filter(r=>r[3]===1);
+ caRec=M.map((m,i)=>+(sum(sig.filter(r=>r[16]===i).map(r=>r[7]))*12/1000).toFixed(1));
+ caPon=M.map((m,i)=>+(sum(sig.filter(r=>r[16]===i).map(r=>r[6]))/1000).toFixed(1));
+ nbAll=M.map((m,i)=>sig.filter(r=>r[16]===i).length);
+ const arrTot=sum(sig.map(r=>r[7]))*12, ponTot=sum(sig.map(r=>r[6]));
+ K.arr=Math.round(arrTot/1000); K.pon=+(ponTot/1000).toFixed(1);
+ K.pctRec=(arrTot+ponTot)?Math.round(arrTot/(arrTot+ponTot)*100):0;
+ K.nTotal=rows.length; K.nSigned=sig.length; K.nEnv=rows.filter(r=>r[4]>=1).length;
+ K.transfo=rows.length?Math.round(sig.length/rows.length*100):0;
+ const cyc=sig.filter(r=>r[17]>=0).map(r=>r[17]); K.cycle=cyc.length?Math.round(sum(cyc)/cyc.length):0;
+ K.recC=sig.filter(r=>r[5]==='m').length; K.annC=sig.filter(r=>r[5]==='a').length; K.ponC=sig.filter(r=>r[5]==='p').length;
+ const recContracts=K.recC+K.annC;
+ K.panierRec=recContracts?+(arrTot/1000/recContracts).toFixed(1):0;
+ K.panierPon=K.ponC?+(ponTot/1000/K.ponC).toFixed(1):0;
+ panier=[['Récurrent (annualisé)',K.panierRec,C.rec],['Ponctuel',K.panierPon,C.pon]];
+ clientsSeg=[['Contrats récurrents',recContracts,C.rec],['Contrats ponctuels',K.ponC,C.pon]];
+ K.clientPctRec=(recContracts+K.ponC)?Math.round(recContracts/(recContracts+K.ponC)*100):0;
+ funnel=[['Documents créés',rows.length,C.info],['Envoyés',K.nEnv,C.blue2],['Signés',sig.length,C.green]];
+ const bs={}; rows.forEach(r=>{(bs[r[14]]=bs[r[14]]||[0,0]); bs[r[14]][0]++; if(r[3])bs[r[14]][1]++;});
+ sources=Object.keys(bs).map(n=>[n,bs[n][0],bs[n][1]]).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>[x[0],Math.round(x[1]/(rows.length||1)*100),Math.round(x[2]/x[1]*100)]);
+ const pj=[8,9,10,11,12], pl=['Comptabilité','Social','Juridique','Fiscalité','Gestion'];
+ presta=pl.map((l,j)=>[l,+(sum(sig.map(r=>r[pj[j]]))/1000).toFixed(1)]).sort((a,b)=>b[1]-a[1]);
+ const bm={}; rows.forEach(r=>bm[r[13]]=(bm[r[13]]||0)+1);
+ modeles=Object.keys(bm).map(n=>[n,bm[n]]).sort((a,b)=>b[1]-a[1]).slice(0,8);
+ const bv={}; sig.forEach(r=>bv[r[15]]=(bv[r[15]]||0)+1); const tv=sig.length||1;
+ geo=Object.keys(bv).map(n=>[n,+(bv[n]/tv*100).toFixed(1)]).sort((a,b)=>b[1]-a[1]).slice(0,6);
+ const bc={}; sig.forEach(r=>{const a=bc[r[0]]=bc[r[0]]||{v:0,men:0,pr:{}}; a.v+=r[6]+r[7]*12; a.men+=r[7]; [['Compta',8],['Social',9],['Jurid',10],['Fisca',11],['Gestion',12]].forEach(p=>{if(r[p[1]]>0)a.pr[p[0]]=1;});});
+ const cl=Object.keys(bc).map(n=>[n,bc[n]]).sort((a,b)=>b[1].v-a[1].v);
+ topClients=cl.slice(0,6).map(e=>[e[0],e[1].men>0?'rec':'pon',+(e[1].v/1000).toFixed(1),Object.keys(e[1].pr).join('+')||'Exceptionnel']);
+ const vals=cl.map(e=>e[1].v); const tot=sum(vals)||1; const N=vals.length||1;
+ const cum=p=>{const k=Math.max(1,Math.round(N*p));return Math.round(sum(vals.slice(0,k))/tot*100);};
+ K.paretoCum=[cum(.1),cum(.25),cum(.5),100];
+ K.paretoPart=[K.paretoCum[0],K.paretoCum[1]-K.paretoCum[0],K.paretoCum[2]-K.paretoCum[1],100-K.paretoCum[2]];
+ function grp(d){const g={},t={}; rows.forEach(r=>{t[r[d]]=(t[r[d]]||0)+1;}); sig.forEach(r=>{const a=g[r[d]]=g[r[d]]||{v:0,n:0}; a.v+=r[6]+r[7]*12; a.n++;});
+  return Object.keys(g).map(n=>[n,g[n]]).sort((a,b)=>b[1].v-a[1].v).map((e,i)=>[e[0],+(e[1].v/1000).toFixed(1),Math.round(e[1].n/(t[e[0]]||e[1].n)*100)+'%',i+1]);}
+ rankSig=grp(2); rankResp=grp(1);
+ const OBJ={'MARTIN Julien':260,'MOREAU Sophie':150,'DUBOIS Camille':160,'LEROY Antoine':90};
+ const mkB=rk=>rk.map(x=>[x[0],Math.round(x[1]),OBJ[x[0]]||Math.round(x[1]*1.1),300]);
+ bulletsSig=mkB(rankSig); bulletsResp=mkB(rankResp);
+ rank=colDim==='resp'?rankResp:rankSig; bullets=colDim==='resp'?bulletsResp:bulletsSig;
+ const env=rows.filter(r=>r[4]===1).sort((a,b)=>b[17]-a[17]);
+ K.nAging=env.length;
+ aging=env.slice(0,6).map(r=>[r[0],r[1],r[1],+(((r[6]+r[7]*12)/1000).toFixed(1)),r[17],r[17]>=60?'r':r[17]>=30?'o':'g']);
+}
+function updateAgingStats(){var a=document.getElementById('agStatN'); if(a)a.textContent=K.nAging; var b=document.getElementById('agStatCyc'); if(b)b.textContent=K.cycle+' j';}
+function rerender(){
+ [renderKPI,renderRpKpi,renderMix,renderArr,renderPanier,renderClients,renderTopClients,renderFunnel,renderAging,renderSources,renderPresta,renderGeo,renderModeles,renderBullets,renderRank,updateAgingStats].forEach(function(fn){fn();});
+ Object.keys(done).forEach(function(k){delete done[k];});
+ var el=document.querySelector('.panel.on'); var p=el?el.dataset.p:'';
+ if(p==='synthese'){renderCa();done.ca=1;}
+ else if(p==='activite'){renderDevis();done.dv=1;}
+ else if(p==='recpon'){renderForecast();done.fc=1;}
+ else if(p==='portefeuille'){renderPareto();done.pa=1;}
+}
+function recompute(){computeAll(filterRows());rerender();}
+function setSite(v){fSite=v;recompute();}
+function setCol(v){fCol=v;recompute();}
+
+/* init */
+computeAll(ROWS);
+renderKPI();renderCa();renderRpKpi();renderFunnel();renderAging();renderWaterfall();renderMarges();renderSources();
+renderPresta();renderForm();renderGeo();renderModeles();renderBullets();renderRank();
+renderMix();renderArr();renderPanier();renderClients();renderTopClients();
+populateFilters();var _sb=document.getElementById('scopeBanner');if(_sb)_sb.textContent=scopeText();
+</script>
+</body>
+</html>
